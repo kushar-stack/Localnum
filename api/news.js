@@ -1,4 +1,5 @@
 ﻿const NEWS_URL = "https://newsapi.org/v2";
+const MAX_PAGE_SIZE = 50;
 
 export default async function handler(request, response) {
   const apiKey = process.env.NEWSAPI_KEY;
@@ -8,19 +9,21 @@ export default async function handler(request, response) {
   }
 
   const { query, country = "us", pageSize = "12" } = request.query;
+  const safePageSize = Math.min(Math.max(Number(pageSize) || 12, 1), MAX_PAGE_SIZE);
 
   const params = new URLSearchParams({
-    pageSize: String(pageSize),
+    pageSize: String(safePageSize),
   });
 
   let endpoint = `${NEWS_URL}/top-headlines`;
 
   if (query) {
     endpoint = `${NEWS_URL}/everything`;
-    params.set("q", query);
+    params.set("q", String(query).slice(0, 200));
     params.set("sortBy", "publishedAt");
+    params.set("language", "en");
   } else {
-    params.set("country", country);
+    params.set("country", String(country).slice(0, 5));
   }
 
   try {
@@ -31,8 +34,18 @@ export default async function handler(request, response) {
     });
 
     if (!apiResponse.ok) {
-      const errorText = await apiResponse.text();
-      response.status(apiResponse.status).json({ error: errorText || "NewsAPI error" });
+      let errorMessage = "NewsAPI error";
+      try {
+        const errorJson = await apiResponse.json();
+        if (errorJson?.message) {
+          errorMessage = errorJson.message;
+        }
+      } catch (parseError) {
+        const errorText = await apiResponse.text();
+        if (errorText) errorMessage = errorText;
+      }
+
+      response.status(apiResponse.status).json({ error: errorMessage });
       return;
     }
 
