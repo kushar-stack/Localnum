@@ -15,21 +15,41 @@
   <main class="content">
     <section class="controls" aria-label="News controls">
       <div class="control-row">
+        <div class="mode-toggle" role="group" aria-label="Mode">
+          <button class="mode-btn" data-mode="headlines" id="modeHeadlines">Headlines</button>
+          <button class="mode-btn" data-mode="search" id="modeSearch">Search</button>
+        </div>
         <input id="query" type="text" placeholder="Search topics (e.g. AI, markets, climate)" />
-        <select id="country">
+        <button id="refresh">Refresh</button>
+      </div>
+      <div class="control-row secondary">
+        <select id="country" aria-label="Country">
           <option value="us" selected>US</option>
           <option value="gb">UK</option>
           <option value="ca">Canada</option>
           <option value="au">Australia</option>
           <option value="in">India</option>
         </select>
-        <button id="refresh">Refresh</button>
+        <div class="chips" id="categoryChips" role="listbox" aria-label="Category">
+          <button class="chip" data-category="">All</button>
+          <button class="chip" data-category="business">Business</button>
+          <button class="chip" data-category="technology">Tech</button>
+          <button class="chip" data-category="science">Science</button>
+          <button class="chip" data-category="health">Health</button>
+          <button class="chip" data-category="sports">Sports</button>
+          <button class="chip" data-category="entertainment">Culture</button>
+        </div>
       </div>
+      <div class="hint" id="hint"></div>
     </section>
 
     <section id="status" class="status" role="status" aria-live="polite"></section>
 
     <section id="news" class="news-grid" aria-label="Latest news"></section>
+
+    <div class="load-more-wrap">
+      <button id="loadMore" class="ghost">Load more</button>
+    </div>
   </main>
 
   <footer class="site-footer">

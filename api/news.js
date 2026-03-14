@@ -8,22 +8,35 @@ export default async function handler(request, response) {
     return;
   }
 
-  const { query, country = "us", pageSize = "12" } = request.query;
+  const {
+    query,
+    country = "us",
+    pageSize = "12",
+    page = "1",
+    mode = "headlines",
+    category = "",
+  } = request.query;
+
   const safePageSize = Math.min(Math.max(Number(pageSize) || 12, 1), MAX_PAGE_SIZE);
+  const safePage = Math.min(Math.max(Number(page) || 1, 1), 10);
 
   const params = new URLSearchParams({
     pageSize: String(safePageSize),
+    page: String(safePage),
   });
 
   let endpoint = `${NEWS_URL}/top-headlines`;
 
-  if (query) {
+  if (mode === "search") {
     endpoint = `${NEWS_URL}/everything`;
-    params.set("q", String(query).slice(0, 200));
+    params.set("q", String(query || "").slice(0, 200));
     params.set("sortBy", "publishedAt");
     params.set("language", "en");
   } else {
     params.set("country", String(country).slice(0, 5));
+    if (category) {
+      params.set("category", String(category).slice(0, 20));
+    }
   }
 
   try {

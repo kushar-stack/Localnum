@@ -1,4 +1,5 @@
 ﻿const DEFAULT_PAGE_SIZE = 12;
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 const elements = {
   query: document.getElementById("query"),
@@ -6,10 +7,38 @@ const elements = {
   refresh: document.getElementById("refresh"),
   status: document.getElementById("status"),
   news: document.getElementById("news"),
+  hint: document.getElementById("hint"),
+  loadMore: document.getElementById("loadMore"),
+  modeHeadlines: document.getElementById("modeHeadlines"),
+  modeSearch: document.getElementById("modeSearch"),
+  categoryChips: document.getElementById("categoryChips"),
+};
+
+const credibilityMap = {
+  "reuters": "High",
+  "associated press": "High",
+  "the associated press": "High",
+  "ap": "High",
+  "bbc news": "High",
+  "financial times": "High",
+  "the wall street journal": "High",
+  "the new york times": "High",
+  "the guardian": "Medium",
+  "cnn": "Medium",
+  "bloomberg": "High",
 };
 
 let isLoading = false;
 let currentController = null;
+let cachedArticles = [];
+let page = 1;
+
+const state = {
+  mode: localStorage.getItem("mode") || "headlines",
+  query: localStorage.getItem("query") || "",
+  country: localStorage.getItem("country") || "us",
+  category: localStorage.getItem("category") || "",
+};
 
 function setStatus(message) {
   elements.status.textContent = message;
@@ -18,6 +47,7 @@ function setStatus(message) {
 function setLoading(loading) {
   isLoading = loading;
   elements.refresh.disabled = loading;
+  elements.loadMore.disabled = loading;
   elements.refresh.textContent = loading ? "Refreshing..." : "Refresh";
   elements.refresh.setAttribute("aria-busy", loading ? "true" : "false");
 }
@@ -80,7 +110,7 @@ function summarizeArticle(article) {
 
   const titleSeed = article.title ? article.title.split(":")[0] : "this development";
   const why = article.description
-    ? cleanText(article.description).slice(0, 120)
+    ? cleanText(article.description).slice(0, 140)
     : `Signals momentum around ${titleSeed.toLowerCase()}.`;
 
   return { bullets, why };
@@ -97,6 +127,55 @@ function formatDate(dateString) {
   });
 }
 
+function normalizeTitle(title) {
+  if (!title) return "";
+  return title
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/\s*[-|–—]\s*[^-]+$/, "")
+    .replace(/[^a-z0-9 ]/g, "")
+    .trim();
+}
+
+function clusterArticles(articles) {
+  const map = new Map();
+
+  for (const article of articles) {
+    const key = normalizeTitle(article.title || article.url || "");
+    if (!key) continue;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        ...article,
+        sources: new Set([article.source?.name].filter(Boolean)),
+      });
+    } else {
+      const existing = map.get(key);
+      if (article.source?.name) {
+        existing.sources.add(article.source.name);
+      }
+      if (article.publishedAt && existing.publishedAt) {
+        if (new Date(article.publishedAt) > new Date(existing.publishedAt)) {
+          existing.publishedAt = article.publishedAt;
+          existing.url = article.url;
+        }
+      }
+    }
+  }
+
+  return Array.from(map.values()).map((item) => ({
+    ...item,
+    sources: Array.from(item.sources || []),
+  }));
+}
+
+function getCredibilityBadge(source) {
+  if (!source) return "";
+  const key = source.toLowerCase();
+  const label = credibilityMap[key] || "Reported";
+  return label;
+}
+
 function cardTemplate(article) {
   const { bullets, why } = summarizeArticle(article);
   const meta = [article.source?.name, formatDate(article.publishedAt)]
@@ -107,6 +186,21 @@ function cardTemplate(article) {
   const title = escapeHtml(article.title || "Untitled");
   const safeBullets = bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
   const safeWhy = escapeHtml(why);
+  const sources = Array.isArray(article.sources) && article.sources.length
+    ? article.sources
+    : article.source?.name
+      ? [article.source.name]
+      : [];
+
+  const sourceRow = sources.length
+    ? `<div class="source-row">${sources
+        .slice(0, 4)
+        .map((name) => `<span class="source-pill">${escapeHtml(name)}</span>`)
+        .join("")}</div>`
+    : "";
+
+  const badgeLabel = getCredibilityBadge(sources[0] || article.source?.name);
+  const badge = badgeLabel ? `<span class="badge">${escapeHtml(badgeLabel)}</span>` : "";
 
   const link = article.url
     ? `<a href="${escapeHtml(article.url)}" target="_blank" rel="noopener">Read the full story</a>`
@@ -116,6 +210,8 @@ function cardTemplate(article) {
     <article class="card">
       <div class="meta">${meta}</div>
       <h3>${title}</h3>
+      ${sourceRow}
+      ${badge}
       <ul>
         ${safeBullets}
       </ul>
@@ -125,22 +221,128 @@ function cardTemplate(article) {
   `;
 }
 
-async function fetchNews() {
+function skeletonTemplate() {
+  return `
+    <article class="card skeleton">
+      <div class="line" style="width: 40%"></div>
+      <div class="line" style="height: 20px; width: 90%"></div>
+      <div class="line" style="width: 80%"></div>
+      <div class="line" style="width: 70%"></div>
+      <div class="line" style="width: 65%"></div>
+      <div class="line" style="width: 75%"></div>
+    </article>
+  `;
+}
+
+function getCacheKey() {
+  return JSON.stringify({
+    mode: state.mode,
+    query: state.query,
+    country: state.country,
+    category: state.category,
+    page,
+  });
+}
+
+function readCache() {
+  try {
+    const raw = localStorage.getItem("newsCache");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - parsed.timestamp > CACHE_TTL_MS) return null;
+    if (parsed.key !== getCacheKey()) return null;
+    return parsed.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+function writeCache(data) {
+  try {
+    localStorage.setItem(
+      "newsCache",
+      JSON.stringify({
+        key: getCacheKey(),
+        timestamp: Date.now(),
+        data,
+      })
+    );
+  } catch (error) {
+    // ignore cache failures
+  }
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  localStorage.setItem("mode", mode);
+  elements.modeHeadlines.classList.toggle("active", mode === "headlines");
+  elements.modeSearch.classList.toggle("active", mode === "search");
+
+  const isSearch = mode === "search";
+  elements.country.disabled = isSearch;
+  elements.categoryChips.classList.toggle("disabled", isSearch);
+
+  if (isSearch) {
+    elements.hint.textContent = "Search ignores country and category. Use Headlines for local news.";
+  } else {
+    elements.hint.textContent = "Headlines use country + category. Switch to Search for global topics.";
+  }
+}
+
+function setCategory(category) {
+  state.category = category;
+  localStorage.setItem("category", category);
+  [...elements.categoryChips.querySelectorAll(".chip")].forEach((chip) => {
+    chip.classList.toggle("active", chip.dataset.category === category);
+  });
+}
+
+function renderNews(articles, replace = false) {
+  const html = articles.map(cardTemplate).join("");
+  if (replace) {
+    elements.news.innerHTML = html;
+  } else {
+    elements.news.insertAdjacentHTML("beforeend", html);
+  }
+}
+
+async function fetchNews({ reset = false } = {}) {
   if (isLoading) return;
 
-  const query = elements.query.value.trim();
-  const country = elements.country.value;
-
-  const params = new URLSearchParams({
-    country,
-    pageSize: DEFAULT_PAGE_SIZE,
-  });
-  if (query) {
-    params.set("query", query);
+  if (reset) {
+    page = 1;
+    cachedArticles = [];
   }
 
-  setStatus("Fetching latest headlines...");
-  elements.news.innerHTML = "";
+  state.query = elements.query.value.trim();
+  state.country = elements.country.value;
+  localStorage.setItem("query", state.query);
+  localStorage.setItem("country", state.country);
+
+  const params = new URLSearchParams({
+    pageSize: DEFAULT_PAGE_SIZE,
+    page,
+    mode: state.mode,
+    country: state.country,
+  });
+
+  if (state.mode === "search") {
+    if (!state.query) {
+      setStatus("Type a search term to explore global stories.");
+      elements.news.innerHTML = "";
+      return;
+    }
+    params.set("query", state.query);
+  } else {
+    if (state.category) {
+      params.set("category", state.category);
+    }
+  }
+
+  setStatus(page === 1 ? "Fetching latest headlines..." : "Loading more stories...");
+  if (page === 1) {
+    elements.news.innerHTML = Array.from({ length: 6 }, skeletonTemplate).join("");
+  }
 
   if (currentController) {
     currentController.abort();
@@ -148,6 +350,16 @@ async function fetchNews() {
   currentController = new AbortController();
 
   setLoading(true);
+
+  const cached = page === 1 ? readCache() : null;
+  if (cached) {
+    cachedArticles = cached;
+    const clustered = clusterArticles(cachedArticles);
+    renderNews(clustered, true);
+    setStatus(`Showing ${clustered.length} headlines.`);
+    setLoading(false);
+    return;
+  }
 
   try {
     const response = await fetch(`/api/news?${params.toString()}`, {
@@ -173,11 +385,18 @@ async function fetchNews() {
 
     if (!articles.length) {
       setStatus("No articles found. Try a different query.");
+      if (page === 1) elements.news.innerHTML = "";
       return;
     }
 
-    elements.news.innerHTML = articles.map(cardTemplate).join("");
-    setStatus(`Showing ${articles.length} headlines.`);
+    cachedArticles = [...cachedArticles, ...articles];
+    const clustered = clusterArticles(cachedArticles);
+    renderNews(clustered, page === 1);
+    setStatus(`Showing ${clustered.length} headlines.`);
+
+    if (page === 1) {
+      writeCache(cachedArticles);
+    }
   } catch (error) {
     if (error.name === "AbortError") return;
     const message = error?.message || "Unable to load news. Check your key or network.";
@@ -188,17 +407,50 @@ async function fetchNews() {
 }
 
 function init() {
+  elements.query.value = state.query;
+  elements.country.value = state.country;
+  setMode(state.mode);
+  setCategory(state.category);
+
   elements.refresh.addEventListener("click", () => {
-    fetchNews();
+    fetchNews({ reset: true });
   });
 
   elements.query.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
-      fetchNews();
+      setMode("search");
+      fetchNews({ reset: true });
     }
   });
 
-  fetchNews();
+  elements.country.addEventListener("change", () => {
+    setMode("headlines");
+    fetchNews({ reset: true });
+  });
+
+  elements.modeHeadlines.addEventListener("click", () => {
+    setMode("headlines");
+    fetchNews({ reset: true });
+  });
+
+  elements.modeSearch.addEventListener("click", () => {
+    setMode("search");
+    fetchNews({ reset: true });
+  });
+
+  elements.categoryChips.addEventListener("click", (event) => {
+    const chip = event.target.closest(".chip");
+    if (!chip || state.mode === "search") return;
+    setCategory(chip.dataset.category || "");
+    fetchNews({ reset: true });
+  });
+
+  elements.loadMore.addEventListener("click", () => {
+    page += 1;
+    fetchNews({ reset: false });
+  });
+
+  fetchNews({ reset: true });
 }
 
 init();
