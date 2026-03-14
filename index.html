@@ -1,0 +1,41 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Busy Brief — Latest News</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">Busy Brief</div>
+    <div class="tagline">Minimal summaries. Maximum signal.</div>
+  </header>
+
+  <main class="content">
+    <section class="controls" aria-label="News controls">
+      <div class="control-row">
+        <input id="query" type="text" placeholder="Search topics (e.g. AI, markets, climate)" />
+        <select id="country">
+          <option value="us" selected>US</option>
+          <option value="gb">UK</option>
+          <option value="ca">Canada</option>
+          <option value="au">Australia</option>
+          <option value="in">India</option>
+        </select>
+        <button id="refresh">Refresh</button>
+      </div>
+    </section>
+
+    <section id="status" class="status" role="status" aria-live="polite"></section>
+
+    <section id="news" class="news-grid" aria-label="Latest news"></section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Powered by NewsAPI.org</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

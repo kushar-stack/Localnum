@@ -1,0 +1,163 @@
+﻿@import url("https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&display=swap");
+
+:root {
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --ink: #111111;
+  --muted: #5b5b5b;
+  --line: #e6e2da;
+  --accent: #1a3b2b;
+  --accent-soft: #d9e7de;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Spectral", "Georgia", serif;
+  color: var(--ink);
+  background: radial-gradient(circle at top, #fff9ef 0%, var(--bg) 45%, #f0efe9 100%);
+  min-height: 100vh;
+}
+
+.site-header {
+  padding: 2.5rem 1.5rem 1.5rem;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tagline {
+  margin-top: 0.4rem;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.controls {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  box-shadow: 0 12px 30px rgba(17, 17, 17, 0.06);
+}
+
+.control-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem;
+}
+
+.api-row {
+  grid-template-columns: 1fr auto;
+}
+
+input, select, button {
+  font: inherit;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  padding: 0.6rem 1rem;
+  background: #fff;
+}
+
+button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.4rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(26, 59, 43, 0.2);
+}
+
+.status {
+  margin: 1rem 0 1.5rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  min-height: 1.2rem;
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 0.75rem;
+  box-shadow: 0 10px 26px rgba(17, 17, 17, 0.05);
+}
+
+.card h3 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.card .meta {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.card ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--ink);
+}
+
+.card li {
+  margin-bottom: 0.4rem;
+}
+
+.why {
+  background: var(--accent-soft);
+  padding: 0.6rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  color: #1c2f25;
+}
+
+.card a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.site-footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 2rem 1rem 2.5rem;
+}
+
+@media (max-width: 720px) {
+  .control-row {
+    grid-template-columns: 1fr;
+  }
+
+  button {
+    width: 100%;
+  }
+}
