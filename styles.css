@@ -141,7 +141,6 @@ button.ghost {
 
 .chips.disabled {
   opacity: 0.5;
-  pointer-events: none;
 }
 
 .chip {

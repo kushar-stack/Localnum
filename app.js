@@ -363,7 +363,6 @@ function setMode(mode) {
   elements.modeSearch.classList.toggle("active", mode === "search");
 
   const isSearch = mode === "search";
-  elements.country.disabled = isSearch;
   elements.categoryChips.classList.toggle("disabled", isSearch);
 
   if (isSearch) {
@@ -604,7 +603,10 @@ function init() {
 
   elements.categoryChips.addEventListener("click", (event) => {
     const chip = event.target.closest(".chip");
-    if (!chip || state.mode === "search") return;
+    if (!chip) return;
+    if (state.mode === "search") {
+      setMode("headlines");
+    }
     setCategory(chip.dataset.category || "");
     fetchNews({ reset: true });
   });
