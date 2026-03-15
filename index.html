@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -44,20 +44,29 @@
         </select>
         <div class="chips" id="categoryChips" role="listbox" aria-label="Category">
           <button class="chip" data-category="">All</button>
+          <button class="chip" data-category="general">World</button>
           <button class="chip" data-category="business">Business</button>
+          <button class="chip" data-query="Markets">Markets</button>
           <button class="chip" data-category="technology">Tech</button>
+          <button class="chip" data-query="AI">AI</button>
           <button class="chip" data-category="science">Science</button>
           <button class="chip" data-category="health">Health</button>
           <button class="chip" data-category="sports">Sports</button>
           <button class="chip" data-category="entertainment">Culture</button>
+          <button class="chip" data-query="Politics">Politics</button>
+          <button class="chip" data-query="Climate">Climate</button>
         </div>
       </div>
-      <div class="control-row tertiary">
-        <select id="briefing" aria-label="Briefing length">
-          <option value="quick">2-Min Brief</option>
-          <option value="standard" selected>Standard Brief</option>
-          <option value="deep">Deep Dive</option>
-        </select>
+      
+      <details class="advanced-filters">
+        <summary>Advanced Filters</summary>
+        <div class="filter-group">
+          <div class="control-row tertiary">
+            <select id="briefing" aria-label="Briefing length">
+              <option value="quick">2-Min Brief</option>
+              <option value="standard" selected>Standard Brief</option>
+              <option value="deep">Deep Dive</option>
+            </select>
         <select id="range" aria-label="Search range">
           <option value="24h">Past 24h</option>
           <option value="7d" selected>Past 7 days</option>
@@ -95,13 +104,14 @@
         </label>
       </div>
       <div class="control-row quaternary">
-        <label class="toggle">
-          <input id="myBrief" type="checkbox" />
-          <span>My Brief</span>
-        </label>
-        <input id="topicInput" type="text" placeholder="Add a topic (e.g., AI, markets)" />
-        <button id="addTopic">Add topic</button>
-      </div>
+          <label class="toggle">
+            <input id="myBrief" type="checkbox" />
+            <span>My Brief</span>
+          </label>
+          <input id="topicInput" type="text" placeholder="Add a topic (e.g., AI, markets)" />
+          <button id="addTopic">Add topic</button>
+        </div>
+      </details>
       <div class="control-row quinary">
         <button id="emailBrief" class="ghost">Email this brief</button>
         <button id="calendarBrief" class="ghost">Add daily reminder</button>

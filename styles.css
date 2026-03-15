@@ -1,4 +1,4 @@
-﻿@import url("https://fonts.googleapis.com/css2?family=Newsreader:wght@400;600&family=Sora:wght@400;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:wght@400;600&family=Sora:wght@400;600;700&display=swap");
 
 :root {
   --bg: #f8f4ee;
@@ -220,6 +220,62 @@ button.ghost {
   font-size: 0.9rem;
   cursor: pointer;
   line-height: 1;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.chip {
+  background: var(--chip);
+  border: none;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.chip.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.advanced-filters {
+  background: #fdfaf6;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  padding: 0.8rem 1.2rem;
+  margin-top: 0.5rem;
+}
+
+.advanced-filters summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--muted);
+  user-select: none;
+  outline: none;
+}
+
+.advanced-filters[open] summary {
+  margin-bottom: 1rem;
+  color: var(--accent);
+}
+
+.advanced-filters .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
 }
 
 .disclosure {

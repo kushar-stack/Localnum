@@ -1,4 +1,4 @@
-﻿const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 const BRIEFING_MAP = {
   quick: { label: "2-Min Brief", pageSize: 6, summaryLimit: 6 },
@@ -125,12 +125,17 @@ function setStatus(message) {
   elements.status.textContent = message;
 }
 
-function setLoading(loading) {
+function setLoading(loading, replaceNews = false) {
   isLoading = loading;
   elements.refresh.disabled = loading;
   elements.loadMore.disabled = loading;
   elements.refresh.textContent = loading ? "Refreshing..." : "Refresh";
   elements.refresh.setAttribute("aria-busy", loading ? "true" : "false");
+
+  if (loading && replaceNews) {
+    const skeletons = Array(6).fill(skeletonTemplate()).join("");
+    elements.news.innerHTML = skeletons;
+  }
 }
 
 function setLoadMoreVisible(visible) {
@@ -387,6 +392,10 @@ function cardTemplate(article) {
       <span class="summary-tag">${escapeHtml(summaryLabel)}</span>
     </div>
   `;
+  
+  const thumbnail = article.urlToImage
+    ? `<img class="article-thumb" src="${escapeHtml(article.urlToImage)}" alt="Thumbnail" loading="lazy">`
+    : "";
 
   return `
     <article class="card">
@@ -394,6 +403,7 @@ function cardTemplate(article) {
         <div class="meta">${meta}</div>
         ${signal}
       </div>
+      ${thumbnail}
       <h3>${title}</h3>
       ${sourceRow}
       <ul>
@@ -477,7 +487,6 @@ function setMode(mode) {
   elements.modeSearch.classList.toggle("active", effectiveMode === "search");
 
   const isSearch = effectiveMode === "search";
-  elements.categoryChips.classList.toggle("disabled", isSearch);
   elements.range.disabled = !isSearch;
   elements.exact.disabled = !isSearch;
   elements.sortBy.disabled = !isSearch;
@@ -491,12 +500,14 @@ function setMode(mode) {
   }
 }
 
-function setCategory(category) {
+function setCategory(category, suppressHighlight = false) {
   state.category = category;
   localStorage.setItem("category", category);
-  [...elements.categoryChips.querySelectorAll(".chip")].forEach((chip) => {
-    chip.classList.toggle("active", chip.dataset.category === category);
-  });
+  if (!suppressHighlight) {
+    [...elements.categoryChips.querySelectorAll(".chip")].forEach((chip) => {
+      chip.classList.toggle("active", chip.dataset.category === category);
+    });
+  }
 }
 
 function setBriefing(value) {
@@ -601,6 +612,7 @@ function renderNews(articles, replace = false) {
 }
 
 const contextMap = {
+  general: "World: global headlines, politics, and major events.",
   business: "Business: markets, earnings, and corporate strategy shaping the economy.",
   technology: "Tech: AI, hardware, startups, and the platforms that move culture.",
   science: "Science: research breakthroughs, space, and climate-driven discoveries.",
@@ -719,7 +731,7 @@ function downloadBrief() {
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `busy-brief-${briefing.label.replace(/\\s+/g, \"-\").toLowerCase()}.txt`;
+  link.download = `busy-brief-${briefing.label.replace(/\\s+/g, "-").toLowerCase()}.txt`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -986,11 +998,24 @@ function init() {
     const chip = event.target.closest(".chip");
     if (!chip) return;
     if (state.myBrief) setMyBrief(false);
-    if (state.mode === "search") {
-      setMode("headlines");
+    
+    if (chip.dataset.category !== undefined) {
+      if (state.mode !== "headlines") setMode("headlines");
+      setCategory(chip.dataset.category);
+      fetchNews({ reset: true });
+    } else if (chip.dataset.query !== undefined) {
+      if (state.mode !== "search") setMode("search");
+      setCategory("", true); // suppress highlighting "All"
+      
+      elements.query.value = chip.dataset.query;
+      state.query = chip.dataset.query;
+      localStorage.setItem("query", chip.dataset.query);
+      
+      [...elements.categoryChips.querySelectorAll(".chip")].forEach((c) => {
+        c.classList.toggle("active", c === chip);
+      });
+      fetchNews({ reset: true });
     }
-    setCategory(chip.dataset.category || "");
-    fetchNews({ reset: true });
   });
 
   elements.myBrief.addEventListener("change", () => {
