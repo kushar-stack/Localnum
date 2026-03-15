@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Busy Brief — Latest News</title>
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <link rel="stylesheet" href="styles.css?v=8" />
 </head>
 <body>
   <header class="site-header">
@@ -56,6 +56,22 @@
           <span>Exact match</span>
         </label>
       </div>
+      <div class="control-row filters">
+        <select id="qualityFilter" aria-label="Source quality filter">
+          <option value="all" selected>All sources</option>
+          <option value="mid">High + Medium</option>
+          <option value="high">High only</option>
+        </select>
+        <select id="coverageFilter" aria-label="Coverage filter">
+          <option value="all" selected>All coverage</option>
+          <option value="multi">Multi-source only</option>
+        </select>
+        <select id="sortBy" aria-label="Sort order">
+          <option value="publishedAt" selected>Latest</option>
+          <option value="relevancy">Relevance</option>
+          <option value="popularity">Popular</option>
+        </select>
+      </div>
       <div class="control-row quaternary">
         <label class="toggle">
           <input id="myBrief" type="checkbox" />
@@ -99,6 +115,6 @@
     <span id="engagedTime" class="engaged"></span>
   </footer>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

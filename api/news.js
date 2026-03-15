@@ -135,6 +135,7 @@ export default async function handler(request, response) {
     exact = "0",
     summaries = "0",
     summary_limit = String(DEFAULT_SUMMARY_LIMIT),
+    sortBy = "publishedAt",
   } = request.query;
 
   const safePageSize = clampNumber(pageSize, 1, MAX_PAGE_SIZE, 12);
@@ -155,7 +156,10 @@ export default async function handler(request, response) {
       const q = exact === "1" ? `"${cleanedQuery}"` : cleanedQuery;
       params.set("q", q.slice(0, 200));
     }
-    params.set("sortBy", "publishedAt");
+    const allowedSort = ["publishedAt", "relevancy", "popularity"].includes(sortBy)
+      ? sortBy
+      : "publishedAt";
+    params.set("sortBy", allowedSort);
     params.set("language", "en");
 
     const now = new Date();

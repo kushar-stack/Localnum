@@ -29,6 +29,9 @@ const elements = {
   calendarBrief: document.getElementById("calendarBrief"),
   context: document.getElementById("context"),
   engagedTime: document.getElementById("engagedTime"),
+  qualityFilter: document.getElementById("qualityFilter"),
+  coverageFilter: document.getElementById("coverageFilter"),
+  sortBy: document.getElementById("sortBy"),
 };
 
 const credibilityMap = {
@@ -105,6 +108,9 @@ const state = {
   myBrief: localStorage.getItem("myBrief") === "true",
   topics: JSON.parse(localStorage.getItem("topics") || "[]"),
   conciseHeadlines: localStorage.getItem("conciseHeadlines") === "true",
+  qualityFilter: localStorage.getItem("qualityFilter") || "all",
+  coverageFilter: localStorage.getItem("coverageFilter") || "all",
+  sortBy: localStorage.getItem("sortBy") || "publishedAt",
 };
 
 function setStatus(message) {
@@ -417,6 +423,9 @@ function getCacheKey() {
     exact: state.exact,
     myBrief: state.myBrief,
     topics: state.topics,
+    qualityFilter: state.qualityFilter,
+    coverageFilter: state.coverageFilter,
+    sortBy: state.sortBy,
     page,
   });
 }
@@ -458,6 +467,9 @@ function setMode(mode) {
 
   const isSearch = effectiveMode === "search";
   elements.categoryChips.classList.toggle("disabled", isSearch);
+  elements.range.disabled = !isSearch;
+  elements.exact.disabled = !isSearch;
+  elements.sortBy.disabled = !isSearch;
 
   if (state.myBrief) {
     elements.hint.textContent = "My Brief uses your saved topics across sources.";
@@ -502,6 +514,21 @@ function setConciseHeadlines(value) {
   state.conciseHeadlines = value;
   localStorage.setItem("conciseHeadlines", value ? "true" : "false");
   elements.conciseHeadlines.checked = value;
+}
+
+function setQualityFilter(value) {
+  state.qualityFilter = value;
+  localStorage.setItem("qualityFilter", value);
+}
+
+function setCoverageFilter(value) {
+  state.coverageFilter = value;
+  localStorage.setItem("coverageFilter", value);
+}
+
+function setSortBy(value) {
+  state.sortBy = value;
+  localStorage.setItem("sortBy", value);
 }
 
 function normalizeTopic(value) {
@@ -583,6 +610,25 @@ function updateContext(activeMode) {
   }
   const countryLabel = elements.country.options[elements.country.selectedIndex]?.textContent || "your region";
   elements.context.textContent = `Top headlines for ${countryLabel}.`;
+}
+
+function applyFilters(articles) {
+  let filtered = [...articles];
+
+  if (state.coverageFilter === "multi") {
+    filtered = filtered.filter((article) => Array.isArray(article.sources) && article.sources.length > 1);
+  }
+
+  if (state.qualityFilter !== "all") {
+    const allowed = state.qualityFilter === "high" ? ["High"] : ["High", "Medium"];
+    filtered = filtered.filter((article) => {
+      const sourceName = article.sources?.[0] || article.source?.name || "";
+      const quality = getCredibilityBadge(sourceName);
+      return allowed.includes(quality);
+    });
+  }
+
+  return filtered;
 }
 
 function loadEngagedTime() {
@@ -693,6 +739,7 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
 
   const briefing = getBriefingConfig();
   const activeMode = state.myBrief ? "search" : state.mode;
+  updateContext(activeMode);
 
   const params = new URLSearchParams({
     pageSize: briefing.pageSize,
@@ -715,6 +762,7 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
       return;
     }
     params.set("query", combinedQuery);
+    params.set("sortBy", state.sortBy);
   } else {
     if (state.category) {
       params.set("category", state.category);
@@ -741,10 +789,15 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
   if (cached) {
     cachedArticles = cached;
     const clustered = clusterArticles(cachedArticles);
-    renderNews(clustered, true);
-    currentBrief = clustered;
+    const filtered = applyFilters(clustered);
+    renderNews(filtered, true);
+    currentBrief = filtered;
     updateContext(activeMode);
-    setStatus(`Showing ${clustered.length} headlines.`);
+    if (!filtered.length) {
+      setStatus("Filters removed all stories. Try loosening filters.");
+    } else {
+      setStatus(`Showing ${filtered.length} of ${clustered.length} stories.`);
+    }
     setLoadMoreVisible(false);
     setLoading(false);
     clearTimeout(timeoutId);
@@ -796,10 +849,15 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
 
     cachedArticles = [...cachedArticles, ...articles];
     const clustered = clusterArticles(cachedArticles);
-    renderNews(clustered, page === 1);
-    currentBrief = clustered;
+    const filtered = applyFilters(clustered);
+    renderNews(filtered, page === 1);
+    currentBrief = filtered;
     updateContext(activeMode);
-    setStatus(`Showing ${clustered.length} headlines.`);
+    if (!filtered.length) {
+      setStatus("Filters removed all stories. Try loosening filters.");
+    } else {
+      setStatus(`Showing ${filtered.length} of ${clustered.length} stories.`);
+    }
 
     const hasMore = totalResults > cachedArticles.length;
     setLoadMoreVisible(hasMore && !state.myBrief);
@@ -828,6 +886,9 @@ function init() {
   elements.range.value = state.range;
   elements.exact.checked = state.exact;
   elements.conciseHeadlines.checked = state.conciseHeadlines;
+  elements.qualityFilter.value = state.qualityFilter;
+  elements.coverageFilter.value = state.coverageFilter;
+  elements.sortBy.value = state.sortBy;
   renderTopics();
 
   setMyBrief(state.myBrief);
@@ -926,6 +987,23 @@ function init() {
   elements.conciseHeadlines.addEventListener("change", () => {
     setConciseHeadlines(elements.conciseHeadlines.checked);
     fetchNews({ reset: true });
+  });
+
+  elements.qualityFilter.addEventListener("change", () => {
+    setQualityFilter(elements.qualityFilter.value);
+    fetchNews({ reset: true });
+  });
+
+  elements.coverageFilter.addEventListener("change", () => {
+    setCoverageFilter(elements.coverageFilter.value);
+    fetchNews({ reset: true });
+  });
+
+  elements.sortBy.addEventListener("change", () => {
+    setSortBy(elements.sortBy.value);
+    if (state.mode === "search") {
+      fetchNews({ reset: true });
+    }
   });
 
   elements.loadMore.addEventListener("click", () => {

@@ -83,6 +83,9 @@ body {
   grid-template-columns: auto auto auto;
 }
 
+.control-row.filters {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .mode-toggle {
   display: inline-flex;
   background: var(--chip);
@@ -419,6 +422,10 @@ button.ghost {
   }
 
   .control-row.quinary {
+    grid-template-columns: 1fr;
+  }
+
+  .control-row.filters {
     grid-template-columns: 1fr;
   }
 
