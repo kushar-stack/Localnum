@@ -32,6 +32,11 @@ const elements = {
   qualityFilter: document.getElementById("qualityFilter"),
   coverageFilter: document.getElementById("coverageFilter"),
   sortBy: document.getElementById("sortBy"),
+  viewCards: document.getElementById("viewCards"),
+  viewList: document.getElementById("viewList"),
+  downloadBrief: document.getElementById("downloadBrief"),
+  storyCount: document.getElementById("storyCount"),
+  lastUpdated: document.getElementById("lastUpdated"),
 };
 
 const credibilityMap = {
@@ -111,6 +116,7 @@ const state = {
   qualityFilter: localStorage.getItem("qualityFilter") || "all",
   coverageFilter: localStorage.getItem("coverageFilter") || "all",
   sortBy: localStorage.getItem("sortBy") || "publishedAt",
+  view: localStorage.getItem("view") || "cards",
 };
 
 function setStatus(message) {
@@ -314,6 +320,17 @@ function getBiasBadge(source) {
   return biasMap[key] || "Unknown";
 }
 
+function getSignalScore(article) {
+  const sourcesCount = Array.isArray(article.sources) ? article.sources.length : 1;
+  const publishedAt = article.lastPublishedAt || article.publishedAt;
+  const publishedTime = publishedAt ? new Date(publishedAt).getTime() : Date.now();
+  const hoursAgo = Math.max(0, (Date.now() - publishedTime) / 36e5);
+  const freshness = hoursAgo < 6 ? 25 : hoursAgo < 24 ? 15 : hoursAgo < 72 ? 5 : 0;
+  const sourceBoost = Math.min(20, sourcesCount * 8);
+  const score = Math.min(100, 55 + freshness + sourceBoost);
+  return Math.round(score);
+}
+
 function formatTitle(title, source) {
   if (!title) return "Untitled";
   let cleaned = cleanText(stripHtml(title));
@@ -351,18 +368,8 @@ function cardTemplate(article) {
         .join("")}</div>`
     : "";
 
-  const credLabel = getCredibilityBadge(sources[0] || article.source?.name);
-  const biasLabel = getBiasBadge(sources[0] || article.source?.name);
-  const badgeParts = [];
-  if (credLabel && credLabel !== "Reported") {
-    badgeParts.push(`<span class="badge">${escapeHtml(credLabel)}</span>`);
-  }
-  if (biasLabel && biasLabel !== "Unknown") {
-    badgeParts.push(`<span class="badge bias">${escapeHtml(biasLabel)}</span>`);
-  }
-  const badges = badgeParts.length
-    ? `<div class="source-row">${badgeParts.join("")}</div>`
-    : "";
+  const signalScore = getSignalScore(article);
+  const signal = `<span class="signal">Signal ${signalScore}</span>`;
 
   const link = article.url
     ? `<a href="${escapeHtml(article.url)}" target="_blank" rel="noopener">Read the full story</a>`
@@ -381,10 +388,12 @@ function cardTemplate(article) {
 
   return `
     <article class="card">
-      <div class="meta">${meta}</div>
+      <div class="card-top">
+        <div class="meta">${meta}</div>
+        ${signal}
+      </div>
       <h3>${title}</h3>
       ${sourceRow}
-      ${badges}
       <ul>
         ${safeBullets}
       </ul>
@@ -531,6 +540,14 @@ function setSortBy(value) {
   localStorage.setItem("sortBy", value);
 }
 
+function setView(value) {
+  state.view = value;
+  localStorage.setItem("view", value);
+  elements.viewCards.classList.toggle("active", value === "cards");
+  elements.viewList.classList.toggle("active", value === "list");
+  elements.news.classList.toggle("list", value === "list");
+}
+
 function normalizeTopic(value) {
   return cleanText(stripHtml(value));
 }
@@ -612,6 +629,16 @@ function updateContext(activeMode) {
   elements.context.textContent = `Top headlines for ${countryLabel}.`;
 }
 
+function updateHeroStats(count) {
+  if (elements.storyCount) {
+    elements.storyCount.textContent = count ? `${count} stories` : "—";
+  }
+  if (elements.lastUpdated) {
+    const time = new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    elements.lastUpdated.textContent = `Updated ${time}`;
+  }
+}
+
 function applyFilters(articles) {
   let filtered = [...articles];
 
@@ -677,6 +704,19 @@ function buildBriefText() {
       return `${index + 1}. ${title}\n${summary.bullets.join("\n")}\nWhy it matters: ${summary.why}\n${article.url || ""}`.trim();
     })
     .join("\n\n");
+}
+
+function downloadBrief() {
+  const briefing = getBriefingConfig();
+  const content = `Busy Brief — ${new Date().toLocaleDateString()}\n\n${buildBriefText()}`;
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `busy-brief-${briefing.label.replace(/\\s+/g, \"-\").toLowerCase()}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
 }
 
 function downloadCalendarReminder() {
@@ -798,6 +838,7 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     } else {
       setStatus(`Showing ${filtered.length} of ${clustered.length} stories.`);
     }
+    updateHeroStats(filtered.length);
     setLoadMoreVisible(false);
     setLoading(false);
     clearTimeout(timeoutId);
@@ -858,6 +899,7 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     } else {
       setStatus(`Showing ${filtered.length} of ${clustered.length} stories.`);
     }
+    updateHeroStats(filtered.length);
 
     const hasMore = totalResults > cachedArticles.length;
     setLoadMoreVisible(hasMore && !state.myBrief);
@@ -889,6 +931,7 @@ function init() {
   elements.qualityFilter.value = state.qualityFilter;
   elements.coverageFilter.value = state.coverageFilter;
   elements.sortBy.value = state.sortBy;
+  setView(state.view);
   renderTopics();
 
   setMyBrief(state.myBrief);
@@ -1006,6 +1049,14 @@ function init() {
     }
   });
 
+  elements.viewCards.addEventListener("click", () => {
+    setView("cards");
+  });
+
+  elements.viewList.addEventListener("click", () => {
+    setView("list");
+  });
+
   elements.loadMore.addEventListener("click", () => {
     page += 1;
     fetchNews({ reset: false });
@@ -1038,6 +1089,10 @@ function init() {
 
   elements.calendarBrief.addEventListener("click", () => {
     downloadCalendarReminder();
+  });
+
+  elements.downloadBrief.addEventListener("click", () => {
+    downloadBrief();
   });
 
   loadEngagedTime();
