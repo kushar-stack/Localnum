@@ -24,6 +24,11 @@ const elements = {
   topicInput: document.getElementById("topicInput"),
   addTopic: document.getElementById("addTopic"),
   topicList: document.getElementById("topicList"),
+  conciseHeadlines: document.getElementById("conciseHeadlines"),
+  emailBrief: document.getElementById("emailBrief"),
+  calendarBrief: document.getElementById("calendarBrief"),
+  context: document.getElementById("context"),
+  engagedTime: document.getElementById("engagedTime"),
 };
 
 const credibilityMap = {
@@ -85,6 +90,9 @@ let currentController = null;
 let cachedArticles = [];
 let page = 1;
 let prefetchCache = null;
+let currentBrief = [];
+let engagedSeconds = 0;
+const engagedKey = new Date().toISOString().slice(0, 10);
 
 const state = {
   mode: localStorage.getItem("mode") || "headlines",
@@ -96,6 +104,7 @@ const state = {
   exact: localStorage.getItem("exact") === "true",
   myBrief: localStorage.getItem("myBrief") === "true",
   topics: JSON.parse(localStorage.getItem("topics") || "[]"),
+  conciseHeadlines: localStorage.getItem("conciseHeadlines") === "true",
 };
 
 function setStatus(message) {
@@ -306,6 +315,10 @@ function formatTitle(title, source) {
     const pattern = new RegExp(`\\s*[-|–—]\\s*${escapeRegExp(source)}\\s*$`, "i");
     cleaned = cleaned.replace(pattern, "");
   }
+  if (state.conciseHeadlines) {
+    const concise = cleaned.split(":")[0].split(" - ")[0].trim();
+    cleaned = clampText(concise, 90);
+  }
   return cleaned || "Untitled";
 }
 
@@ -485,6 +498,12 @@ function setMyBrief(value) {
   setMode(value ? "search" : state.mode);
 }
 
+function setConciseHeadlines(value) {
+  state.conciseHeadlines = value;
+  localStorage.setItem("conciseHeadlines", value ? "true" : "false");
+  elements.conciseHeadlines.checked = value;
+}
+
 function normalizeTopic(value) {
   return cleanText(stripHtml(value));
 }
@@ -533,6 +552,105 @@ function renderNews(articles, replace = false) {
   } else {
     elements.news.insertAdjacentHTML("beforeend", html);
   }
+}
+
+const contextMap = {
+  business: "Business: markets, earnings, and corporate strategy shaping the economy.",
+  technology: "Tech: AI, hardware, startups, and the platforms that move culture.",
+  science: "Science: research breakthroughs, space, and climate-driven discoveries.",
+  health: "Health: medicine, public health, and wellness signals worth tracking.",
+  sports: "Sports: top results, transfers, and storylines across leagues.",
+  entertainment: "Culture: media, music, film, and the business of attention.",
+};
+
+function updateContext(activeMode) {
+  if (!elements.context) return;
+  if (state.myBrief) {
+    const topics = state.topics.length ? state.topics.join(", ") : "your saved topics";
+    elements.context.textContent = `My Brief: tracking ${topics}.`;
+    return;
+  }
+  if (activeMode === "search") {
+    const query = elements.query.value.trim();
+    elements.context.textContent = query
+      ? `Search results for “${query}” across global sources.`
+      : "Search global sources by topic.";
+    return;
+  }
+  if (state.category && contextMap[state.category]) {
+    elements.context.textContent = contextMap[state.category];
+    return;
+  }
+  const countryLabel = elements.country.options[elements.country.selectedIndex]?.textContent || "your region";
+  elements.context.textContent = `Top headlines for ${countryLabel}.`;
+}
+
+function loadEngagedTime() {
+  const stored = Number(localStorage.getItem(`engaged-${engagedKey}`));
+  engagedSeconds = Number.isFinite(stored) ? stored : 0;
+  updateEngagedTimeDisplay();
+}
+
+function saveEngagedTime() {
+  localStorage.setItem(`engaged-${engagedKey}`, String(engagedSeconds));
+}
+
+function updateEngagedTimeDisplay() {
+  if (!elements.engagedTime) return;
+  const minutes = Math.floor(engagedSeconds / 60);
+  elements.engagedTime.textContent = `Engaged today: ${minutes}m`;
+}
+
+function startEngagementTracking() {
+  let lastActive = Date.now();
+  const markActive = () => { lastActive = Date.now(); };
+
+  ["mousemove", "keydown", "scroll", "touchstart"].forEach((eventName) => {
+    window.addEventListener(eventName, markActive, { passive: true });
+  });
+
+  setInterval(() => {
+    if (document.hidden) return;
+    if (Date.now() - lastActive > 60000) return;
+    engagedSeconds += 1;
+    if (engagedSeconds % 15 === 0) {
+      saveEngagedTime();
+      updateEngagedTimeDisplay();
+    }
+  }, 1000);
+}
+
+function buildBriefText() {
+  const briefing = getBriefingConfig();
+  const items = (currentBrief || []).slice(0, briefing.pageSize);
+  if (!items.length) return "No stories available yet.";
+  return items
+    .map((article, index) => {
+      const title = formatTitle(article.title, article.source?.name);
+      const summary = summarizeArticle(article);
+      return `${index + 1}. ${title}\n${summary.bullets.join("\n")}\nWhy it matters: ${summary.why}\n${article.url || ""}`.trim();
+    })
+    .join("\n\n");
+}
+
+function downloadCalendarReminder() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 8, 0, 0);
+  const end = new Date(start.getTime() + 15 * 60000);
+  const pad = (value) => String(value).padStart(2, "0");
+  const formatICS = (date) =>
+    `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}00Z`;
+
+  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Busy Brief//EN\nBEGIN:VEVENT\nUID:${Date.now()}@busybrief\nDTSTAMP:${formatICS(new Date())}\nDTSTART:${formatICS(start)}\nDTEND:${formatICS(end)}\nRRULE:FREQ=DAILY\nSUMMARY:Busy Brief\nDESCRIPTION:Your daily 2-minute briefing.\nEND:VEVENT\nEND:VCALENDAR`;
+
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "busy-brief.ics";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
 }
 
 async function fetchGlobalFallback() {
@@ -624,6 +742,8 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     cachedArticles = cached;
     const clustered = clusterArticles(cachedArticles);
     renderNews(clustered, true);
+    currentBrief = clustered;
+    updateContext(activeMode);
     setStatus(`Showing ${clustered.length} headlines.`);
     setLoadMoreVisible(false);
     setLoading(false);
@@ -677,6 +797,8 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     cachedArticles = [...cachedArticles, ...articles];
     const clustered = clusterArticles(cachedArticles);
     renderNews(clustered, page === 1);
+    currentBrief = clustered;
+    updateContext(activeMode);
     setStatus(`Showing ${clustered.length} headlines.`);
 
     const hasMore = totalResults > cachedArticles.length;
@@ -705,6 +827,7 @@ function init() {
   elements.briefing.value = state.briefing;
   elements.range.value = state.range;
   elements.exact.checked = state.exact;
+  elements.conciseHeadlines.checked = state.conciseHeadlines;
   renderTopics();
 
   setMyBrief(state.myBrief);
@@ -800,6 +923,11 @@ function init() {
     }
   });
 
+  elements.conciseHeadlines.addEventListener("change", () => {
+    setConciseHeadlines(elements.conciseHeadlines.checked);
+    fetchNews({ reset: true });
+  });
+
   elements.loadMore.addEventListener("click", () => {
     page += 1;
     fetchNews({ reset: false });
@@ -823,6 +951,19 @@ function init() {
       setStatus("Copy link: " + url);
     }
   });
+
+  elements.emailBrief.addEventListener("click", () => {
+    const body = encodeURIComponent(buildBriefText());
+    const subject = encodeURIComponent(`Busy Brief — ${new Date().toLocaleDateString()}`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  });
+
+  elements.calendarBrief.addEventListener("click", () => {
+    downloadCalendarReminder();
+  });
+
+  loadEngagedTime();
+  startEngagementTracking();
 
   fetchNews({ reset: true });
 }

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Busy Brief — Latest News</title>
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=7" />
 </head>
 <body>
   <header class="site-header">
@@ -64,11 +64,28 @@
         <input id="topicInput" type="text" placeholder="Add a topic (e.g., AI, markets)" />
         <button id="addTopic">Add topic</button>
       </div>
+      <div class="control-row quinary">
+        <label class="toggle">
+          <input id="conciseHeadlines" type="checkbox" />
+          <span>Concise headlines</span>
+        </label>
+        <button id="emailBrief" class="ghost">Email this brief</button>
+        <button id="calendarBrief" class="ghost">Add daily reminder</button>
+      </div>
       <div id="topicList" class="topic-list" aria-label="Saved topics"></div>
+      <details class="disclosure">
+        <summary>How this brief works</summary>
+        <p>
+          Headlines and sources come from NewsAPI. Summaries may be generated with AI
+          when enabled, and each card links to the original source for verification.
+        </p>
+      </details>
       <div class="hint" id="hint"></div>
     </section>
 
     <section id="status" class="status" role="status" aria-live="polite"></section>
+
+    <section id="context" class="context" aria-live="polite"></section>
 
     <section id="news" class="news-grid" aria-label="Latest news"></section>
 
@@ -79,8 +96,9 @@
 
   <footer class="site-footer">
     <span>Powered by NewsAPI.org</span>
+    <span id="engagedTime" class="engaged"></span>
   </footer>
 
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
