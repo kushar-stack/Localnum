@@ -71,6 +71,10 @@ body {
   grid-template-columns: auto 1fr;
 }
 
+.control-row.tertiary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .mode-toggle {
   display: inline-flex;
   background: var(--chip);
@@ -155,6 +159,18 @@ button.ghost {
   color: var(--chip-active-text);
 }
 
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--muted);
+}
+
+.toggle input {
+  accent-color: var(--accent);
+}
+
 .hint {
   color: var(--muted);
   font-size: 0.9rem;
@@ -215,7 +231,6 @@ button.ghost {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  align-items: center;
 }
 
 .source-pill {
@@ -234,6 +249,10 @@ button.ghost {
   background: #1a3b2b;
   color: #fff;
   width: fit-content;
+}
+
+.badge.bias {
+  background: #4b5563;
 }
 
 .card a {
@@ -286,6 +305,10 @@ button.ghost {
     grid-template-columns: 1fr;
   }
 
+  .control-row.tertiary {
+    grid-template-columns: 1fr;
+  }
+
   button {
     width: 100%;
   }
@@ -294,4 +317,3 @@ button.ghost {
     justify-content: space-between;
   }
 }
-

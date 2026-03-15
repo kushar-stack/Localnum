@@ -1,5 +1,10 @@
-﻿const DEFAULT_PAGE_SIZE = 12;
-const CACHE_TTL_MS = 5 * 60 * 1000;
+﻿const CACHE_TTL_MS = 5 * 60 * 1000;
+
+const BRIEFING_MAP = {
+  quick: { label: "2-Min Brief", pageSize: 6, summaryLimit: 6 },
+  standard: { label: "Standard Brief", pageSize: 12, summaryLimit: 8 },
+  deep: { label: "Deep Dive", pageSize: 20, summaryLimit: 12 },
+};
 
 const elements = {
   query: document.getElementById("query"),
@@ -12,6 +17,9 @@ const elements = {
   modeHeadlines: document.getElementById("modeHeadlines"),
   modeSearch: document.getElementById("modeSearch"),
   categoryChips: document.getElementById("categoryChips"),
+  briefing: document.getElementById("briefing"),
+  range: document.getElementById("range"),
+  exact: document.getElementById("exact"),
 };
 
 const credibilityMap = {
@@ -23,21 +31,47 @@ const credibilityMap = {
   "financial times": "High",
   "the wall street journal": "High",
   "the new york times": "High",
+  "bloomberg": "High",
   "the guardian": "Medium",
   "cnn": "Medium",
-  "bloomberg": "High",
+  "politico": "Medium",
 };
+
+const biasMap = {
+  "reuters": "Center",
+  "associated press": "Center",
+  "the associated press": "Center",
+  "ap": "Center",
+  "bbc news": "Center",
+  "financial times": "Center",
+  "the wall street journal": "Right",
+  "the new york times": "Left",
+  "bloomberg": "Center",
+  "the guardian": "Left",
+  "cnn": "Left",
+  "politico": "Center",
+};
+
+const blockedSources = new Set([
+  "new york post",
+  "daily mail",
+  "the sun",
+]);
 
 let isLoading = false;
 let currentController = null;
 let cachedArticles = [];
 let page = 1;
+let prefetchCache = null;
 
 const state = {
   mode: localStorage.getItem("mode") || "headlines",
   query: localStorage.getItem("query") || "",
   country: localStorage.getItem("country") || "us",
   category: localStorage.getItem("category") || "",
+  briefing: localStorage.getItem("briefing") || "standard",
+  range: localStorage.getItem("range") || "7d",
+  exact: localStorage.getItem("exact") === "true",
 };
 
 function setStatus(message) {
@@ -94,6 +128,10 @@ function pickBullets(sentences) {
 }
 
 function summarizeArticle(article) {
+  if (article.summary?.bullets?.length === 3 && article.summary?.why) {
+    return article.summary;
+  }
+
   const sourceText = [article.description, article.content]
     .map(cleanText)
     .filter(Boolean)
@@ -131,6 +169,14 @@ function formatDate(dateString) {
   });
 }
 
+function formatDateRange(first, last) {
+  if (!first || !last) return "";
+  const firstText = formatDate(first);
+  const lastText = formatDate(last);
+  if (firstText === lastText) return lastText;
+  return `First ${firstText} · Updated ${lastText}`;
+}
+
 function normalizeTitle(title) {
   if (!title) return "";
   return title
@@ -145,6 +191,9 @@ function clusterArticles(articles) {
   const map = new Map();
 
   for (const article of articles) {
+    const sourceName = article.source?.name?.toLowerCase();
+    if (sourceName && blockedSources.has(sourceName)) continue;
+
     const key = normalizeTitle(article.title || article.url || "");
     if (!key) continue;
 
@@ -152,17 +201,30 @@ function clusterArticles(articles) {
       map.set(key, {
         ...article,
         sources: new Set([article.source?.name].filter(Boolean)),
+        firstPublishedAt: article.publishedAt,
+        lastPublishedAt: article.publishedAt,
       });
     } else {
       const existing = map.get(key);
       if (article.source?.name) {
         existing.sources.add(article.source.name);
       }
-      if (article.publishedAt && existing.publishedAt) {
-        if (new Date(article.publishedAt) > new Date(existing.publishedAt)) {
-          existing.publishedAt = article.publishedAt;
+      if (article.publishedAt) {
+        const published = new Date(article.publishedAt);
+        const first = new Date(existing.firstPublishedAt || article.publishedAt);
+        const last = new Date(existing.lastPublishedAt || article.publishedAt);
+        if (published < first) existing.firstPublishedAt = article.publishedAt;
+        if (published > last) {
+          existing.lastPublishedAt = article.publishedAt;
           existing.url = article.url;
+          existing.title = article.title;
+          existing.description = article.description;
+          existing.content = article.content;
+          existing.summary = article.summary || existing.summary;
         }
+      }
+      if (!existing.summary && article.summary) {
+        existing.summary = article.summary;
       }
     }
   }
@@ -176,13 +238,18 @@ function clusterArticles(articles) {
 function getCredibilityBadge(source) {
   if (!source) return "";
   const key = source.toLowerCase();
-  const label = credibilityMap[key] || "Reported";
-  return label;
+  return credibilityMap[key] || "Reported";
+}
+
+function getBiasBadge(source) {
+  if (!source) return "";
+  const key = source.toLowerCase();
+  return biasMap[key] || "Unknown";
 }
 
 function cardTemplate(article) {
   const { bullets, why } = summarizeArticle(article);
-  const meta = [article.source?.name, formatDate(article.publishedAt)]
+  const meta = [article.source?.name, formatDateRange(article.firstPublishedAt, article.lastPublishedAt) || formatDate(article.publishedAt)]
     .filter(Boolean)
     .map(escapeHtml)
     .join(" · ");
@@ -196,15 +263,21 @@ function cardTemplate(article) {
       ? [article.source.name]
       : [];
 
-  const badgeLabel = sources.length ? getCredibilityBadge(sources[0]) : "";
-  const badge = badgeLabel ? `<span class="badge">${escapeHtml(badgeLabel)}</span>` : "";
-
-  const sourceRow = sources.length || badge
-    ? `<div class="source-row">${badge}${sources
+  const sourceRow = sources.length
+    ? `<div class="source-row">${sources
         .slice(0, 4)
         .map((name) => `<span class="source-pill">${escapeHtml(name)}</span>`)
         .join("")}</div>`
     : "";
+
+  const credLabel = getCredibilityBadge(sources[0] || article.source?.name);
+  const biasLabel = getBiasBadge(sources[0] || article.source?.name);
+  const badges = `
+    <div class="source-row">
+      <span class="badge">${escapeHtml(credLabel)}</span>
+      <span class="badge bias">${escapeHtml(biasLabel)}</span>
+    </div>
+  `;
 
   const link = article.url
     ? `<a href="${escapeHtml(article.url)}" target="_blank" rel="noopener">Read the full story</a>`
@@ -215,6 +288,7 @@ function cardTemplate(article) {
       <div class="meta">${meta}</div>
       <h3>${title}</h3>
       ${sourceRow}
+      ${badges}
       <ul>
         ${safeBullets}
       </ul>
@@ -237,12 +311,19 @@ function skeletonTemplate() {
   `;
 }
 
+function getBriefingConfig() {
+  return BRIEFING_MAP[state.briefing] || BRIEFING_MAP.standard;
+}
+
 function getCacheKey() {
   return JSON.stringify({
     mode: state.mode,
     query: state.query,
     country: state.country,
     category: state.category,
+    briefing: state.briefing,
+    range: state.range,
+    exact: state.exact,
     page,
   });
 }
@@ -300,6 +381,21 @@ function setCategory(category) {
   });
 }
 
+function setBriefing(value) {
+  state.briefing = value;
+  localStorage.setItem("briefing", value);
+}
+
+function setRange(value) {
+  state.range = value;
+  localStorage.setItem("range", value);
+}
+
+function setExact(value) {
+  state.exact = value;
+  localStorage.setItem("exact", value ? "true" : "false");
+}
+
 function renderNews(articles, replace = false) {
   const html = articles.map(cardTemplate).join("");
   if (replace) {
@@ -319,12 +415,27 @@ async function fetchGlobalFallback() {
   await fetchNews({ reset: true, fallbackAllowed: false, force: true });
 }
 
+async function prefetchNextPage(params) {
+  if (prefetchCache || state.mode !== "headlines") return;
+  const nextParams = new URLSearchParams(params);
+  nextParams.set("page", "2");
+  try {
+    const response = await fetch(`/api/news?${nextParams.toString()}`);
+    if (!response.ok) return;
+    const data = await response.json();
+    prefetchCache = data;
+  } catch (error) {
+    // ignore
+  }
+}
+
 async function fetchNews({ reset = false, fallbackAllowed = true, force = false } = {}) {
   if (isLoading && !force) return;
 
   if (reset) {
     page = 1;
     cachedArticles = [];
+    prefetchCache = null;
   }
 
   state.query = elements.query.value.trim();
@@ -332,11 +443,17 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
   localStorage.setItem("query", state.query);
   localStorage.setItem("country", state.country);
 
+  const briefing = getBriefingConfig();
+
   const params = new URLSearchParams({
-    pageSize: DEFAULT_PAGE_SIZE,
+    pageSize: briefing.pageSize,
+    summary_limit: briefing.summaryLimit,
+    summaries: "1",
     page,
     mode: state.mode,
     country: state.country,
+    range: state.range,
+    exact: state.exact ? "1" : "0",
   });
 
   if (state.mode === "search") {
@@ -377,6 +494,7 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     setStatus(`Showing ${clustered.length} headlines.`);
     setLoadMoreVisible(false);
     setLoading(false);
+    clearTimeout(timeoutId);
     return;
   }
 
@@ -429,10 +547,13 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     setStatus(`Showing ${clustered.length} headlines.`);
 
     const hasMore = totalResults > cachedArticles.length;
-    setLoadMoreVisible(hasMore && state.mode === "headlines");
+    setLoadMoreVisible(hasMore);
 
     if (page === 1) {
       writeCache(cachedArticles);
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(() => prefetchNextPage(params));
+      }
     }
   } catch (error) {
     if (error.name === "AbortError") return;
@@ -448,6 +569,10 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
 function init() {
   elements.query.value = state.query;
   elements.country.value = state.country;
+  elements.briefing.value = state.briefing;
+  elements.range.value = state.range;
+  elements.exact.checked = state.exact;
+
   setMode(state.mode);
   setCategory(state.category);
 
@@ -482,6 +607,25 @@ function init() {
     if (!chip || state.mode === "search") return;
     setCategory(chip.dataset.category || "");
     fetchNews({ reset: true });
+  });
+
+  elements.briefing.addEventListener("change", () => {
+    setBriefing(elements.briefing.value);
+    fetchNews({ reset: true });
+  });
+
+  elements.range.addEventListener("change", () => {
+    setRange(elements.range.value);
+    if (state.mode === "search") {
+      fetchNews({ reset: true });
+    }
+  });
+
+  elements.exact.addEventListener("change", () => {
+    setExact(elements.exact.checked);
+    if (state.mode === "search") {
+      fetchNews({ reset: true });
+    }
   });
 
   elements.loadMore.addEventListener("click", () => {

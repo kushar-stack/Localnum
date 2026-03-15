@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Busy Brief — Latest News</title>
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body>
   <header class="site-header">
@@ -40,6 +40,22 @@
           <button class="chip" data-category="entertainment">Culture</button>
         </div>
       </div>
+      <div class="control-row tertiary">
+        <select id="briefing" aria-label="Briefing length">
+          <option value="quick">2-Min Brief</option>
+          <option value="standard" selected>Standard Brief</option>
+          <option value="deep">Deep Dive</option>
+        </select>
+        <select id="range" aria-label="Search range">
+          <option value="24h">Past 24h</option>
+          <option value="7d" selected>Past 7 days</option>
+          <option value="30d">Past 30 days</option>
+        </select>
+        <label class="toggle">
+          <input id="exact" type="checkbox" />
+          <span>Exact match</span>
+        </label>
+      </div>
       <div class="hint" id="hint"></div>
     </section>
 
@@ -56,6 +72,6 @@
     <span>Powered by NewsAPI.org</span>
   </footer>
 
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
