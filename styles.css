@@ -246,6 +246,18 @@ button.ghost {
   min-height: 1.2rem;
 }
 
+.notice {
+  margin-bottom: 1.2rem;
+  background: #fff3e6;
+  border: 1px solid #f3d5b5;
+  border-radius: 14px;
+  padding: 0.8rem 1rem;
+  color: #8a5a2b;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .context {
   margin-bottom: 1.5rem;
   background: #fffdf8;

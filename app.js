@@ -37,6 +37,8 @@ const elements = {
   downloadBrief: document.getElementById("downloadBrief"),
   storyCount: document.getElementById("storyCount"),
   lastUpdated: document.getElementById("lastUpdated"),
+  filterNotice: document.getElementById("filterNotice"),
+  resetFilters: document.getElementById("resetFilters"),
 };
 
 const credibilityMap = {
@@ -639,6 +641,11 @@ function updateHeroStats(count) {
   }
 }
 
+function showFilterNotice(show) {
+  if (!elements.filterNotice) return;
+  elements.filterNotice.classList.toggle("hidden", !show);
+}
+
 function applyFilters(articles) {
   let filtered = [...articles];
 
@@ -647,7 +654,7 @@ function applyFilters(articles) {
   }
 
   if (state.qualityFilter !== "all") {
-    const allowed = state.qualityFilter === "high" ? ["High"] : ["High", "Medium"];
+    const allowed = state.qualityFilter === "high" ? ["High"] : ["High", "Medium", "Reported"];
     filtered = filtered.filter((article) => {
       const sourceName = article.sources?.[0] || article.source?.name || "";
       const quality = getCredibilityBadge(sourceName);
@@ -810,6 +817,7 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
   }
 
   setStatus(page === 1 ? "Fetching latest headlines..." : "Loading more stories...");
+  showFilterNotice(false);
   if (page === 1) {
     elements.news.innerHTML = Array.from({ length: 6 }, skeletonTemplate).join("");
   }
@@ -833,10 +841,13 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     renderNews(filtered, true);
     currentBrief = filtered;
     updateContext(activeMode);
-    if (!filtered.length) {
+    const filtersActive = state.qualityFilter !== "all" || state.coverageFilter !== "all";
+    if (!filtered.length && filtersActive) {
       setStatus("Filters removed all stories. Try loosening filters.");
+      showFilterNotice(true);
     } else {
       setStatus(`Showing ${filtered.length} of ${clustered.length} stories.`);
+      showFilterNotice(false);
     }
     updateHeroStats(filtered.length);
     setLoadMoreVisible(false);
@@ -884,6 +895,8 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
 
       setStatus("No articles found. Try a different query.");
       if (page === 1) elements.news.innerHTML = "";
+      updateHeroStats(0);
+      showFilterNotice(false);
       setLoadMoreVisible(false);
       return;
     }
@@ -894,10 +907,13 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     renderNews(filtered, page === 1);
     currentBrief = filtered;
     updateContext(activeMode);
-    if (!filtered.length) {
+    const filtersActive = state.qualityFilter !== "all" || state.coverageFilter !== "all";
+    if (!filtered.length && filtersActive) {
       setStatus("Filters removed all stories. Try loosening filters.");
+      showFilterNotice(true);
     } else {
       setStatus(`Showing ${filtered.length} of ${clustered.length} stories.`);
+      showFilterNotice(false);
     }
     updateHeroStats(filtered.length);
 
@@ -914,6 +930,7 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     if (error.name === "AbortError") return;
     const message = error?.message || "Unable to load news. Check your key or network.";
     setStatus(message);
+    showFilterNotice(false);
     if (page === 1) elements.news.innerHTML = "";
   } finally {
     clearTimeout(timeoutId);
@@ -1093,6 +1110,14 @@ function init() {
 
   elements.downloadBrief.addEventListener("click", () => {
     downloadBrief();
+  });
+
+  elements.resetFilters.addEventListener("click", () => {
+    setQualityFilter("all");
+    setCoverageFilter("all");
+    elements.qualityFilter.value = "all";
+    elements.coverageFilter.value = "all";
+    fetchNews({ reset: true });
   });
 
   loadEngagedTime();
