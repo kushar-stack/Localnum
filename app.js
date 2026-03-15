@@ -32,9 +32,18 @@ const credibilityMap = {
   "the wall street journal": "High",
   "the new york times": "High",
   "bloomberg": "High",
+  "cbs news": "Medium",
+  "abc news": "Medium",
+  "nbc news": "Medium",
+  "cnbc": "Medium",
+  "the washington post": "High",
+  "the economist": "High",
+  "al jazeera": "Medium",
+  "fox news": "Medium",
   "the guardian": "Medium",
   "cnn": "Medium",
   "politico": "Medium",
+  "tmz": "Low",
 };
 
 const biasMap = {
@@ -47,9 +56,18 @@ const biasMap = {
   "the wall street journal": "Right",
   "the new york times": "Left",
   "bloomberg": "Center",
+  "cbs news": "Center",
+  "abc news": "Center",
+  "nbc news": "Center",
+  "cnbc": "Center",
+  "the washington post": "Left",
+  "the economist": "Center",
+  "al jazeera": "Center",
+  "fox news": "Right",
   "the guardian": "Left",
   "cnn": "Left",
   "politico": "Center",
+  "tmz": "Entertainment",
 };
 
 const blockedSources = new Set([
@@ -108,6 +126,26 @@ function cleanText(text) {
     .trim();
 }
 
+function stripHtml(text) {
+  if (!text) return "";
+  return String(text).replace(/<[^>]+>/g, " ");
+}
+
+function clampText(text, maxLength) {
+  if (!text) return "";
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+}
+
+function sanitizeBullet(text) {
+  const cleaned = cleanText(stripHtml(text));
+  if (!cleaned || !/[a-z0-9]/i.test(cleaned)) return "";
+  return clampText(cleaned, 180);
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function sentenceSplit(text) {
   return cleanText(text)
     .split(/(?<=[.!?])\s+/)
@@ -128,8 +166,12 @@ function pickBullets(sentences) {
 }
 
 function summarizeArticle(article) {
-  if (article.summary?.bullets?.length === 3 && article.summary?.why) {
-    return article.summary;
+  let bullets = [];
+  let why = "";
+
+  if (article.summary?.bullets?.length) {
+    bullets = article.summary.bullets.map(sanitizeBullet).filter(Boolean);
+    why = sanitizeBullet(article.summary.why);
   }
 
   const sourceText = [article.description, article.content]
@@ -137,8 +179,10 @@ function summarizeArticle(article) {
     .filter(Boolean)
     .join(" ");
 
-  const sentences = sentenceSplit(sourceText);
-  const bullets = pickBullets(sentences);
+  if (bullets.length < 3) {
+    const sentences = sentenceSplit(sourceText);
+    bullets = [...bullets, ...pickBullets(sentences)].slice(0, 3);
+  }
 
   while (bullets.length < 3) {
     if (bullets.length === 0) {
@@ -151,9 +195,11 @@ function summarizeArticle(article) {
   }
 
   const titleSeed = article.title ? article.title.split(":")[0] : "this development";
-  const why = article.description
-    ? cleanText(article.description).slice(0, 140)
-    : `Signals momentum around ${titleSeed.toLowerCase()}.`;
+  if (!why) {
+    why = article.description
+      ? clampText(cleanText(article.description), 140)
+      : `Signals momentum around ${titleSeed.toLowerCase()}.`;
+  }
 
   return { bullets, why };
 }
@@ -247,6 +293,16 @@ function getBiasBadge(source) {
   return biasMap[key] || "Unknown";
 }
 
+function formatTitle(title, source) {
+  if (!title) return "Untitled";
+  let cleaned = cleanText(stripHtml(title));
+  if (source) {
+    const pattern = new RegExp(`\\s*[-|–—]\\s*${escapeRegExp(source)}\\s*$`, "i");
+    cleaned = cleaned.replace(pattern, "");
+  }
+  return cleaned || "Untitled";
+}
+
 function cardTemplate(article) {
   const { bullets, why } = summarizeArticle(article);
   const meta = [article.source?.name, formatDateRange(article.firstPublishedAt, article.lastPublishedAt) || formatDate(article.publishedAt)]
@@ -254,7 +310,7 @@ function cardTemplate(article) {
     .map(escapeHtml)
     .join(" · ");
 
-  const title = escapeHtml(article.title || "Untitled");
+  const title = escapeHtml(formatTitle(article.title, article.source?.name));
   const safeBullets = bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
   const safeWhy = escapeHtml(why);
   const sources = Array.isArray(article.sources) && article.sources.length
@@ -272,12 +328,16 @@ function cardTemplate(article) {
 
   const credLabel = getCredibilityBadge(sources[0] || article.source?.name);
   const biasLabel = getBiasBadge(sources[0] || article.source?.name);
-  const badges = `
-    <div class="source-row">
-      <span class="badge">${escapeHtml(credLabel)}</span>
-      <span class="badge bias">${escapeHtml(biasLabel)}</span>
-    </div>
-  `;
+  const badgeParts = [];
+  if (credLabel && credLabel !== "Reported") {
+    badgeParts.push(`<span class="badge">${escapeHtml(credLabel)}</span>`);
+  }
+  if (biasLabel && biasLabel !== "Unknown") {
+    badgeParts.push(`<span class="badge bias">${escapeHtml(biasLabel)}</span>`);
+  }
+  const badges = badgeParts.length
+    ? `<div class="source-row">${badgeParts.join("")}</div>`
+    : "";
 
   const link = article.url
     ? `<a href="${escapeHtml(article.url)}" target="_blank" rel="noopener">Read the full story</a>`
