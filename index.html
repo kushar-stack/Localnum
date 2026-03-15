@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Busy Brief — Latest News</title>
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
 </head>
 <body>
   <header class="site-header">
@@ -56,6 +56,15 @@
           <span>Exact match</span>
         </label>
       </div>
+      <div class="control-row quaternary">
+        <label class="toggle">
+          <input id="myBrief" type="checkbox" />
+          <span>My Brief</span>
+        </label>
+        <input id="topicInput" type="text" placeholder="Add a topic (e.g., AI, markets)" />
+        <button id="addTopic">Add topic</button>
+      </div>
+      <div id="topicList" class="topic-list" aria-label="Saved topics"></div>
       <div class="hint" id="hint"></div>
     </section>
 
@@ -72,6 +81,6 @@
     <span>Powered by NewsAPI.org</span>
   </footer>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

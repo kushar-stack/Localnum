@@ -20,6 +20,10 @@ const elements = {
   briefing: document.getElementById("briefing"),
   range: document.getElementById("range"),
   exact: document.getElementById("exact"),
+  myBrief: document.getElementById("myBrief"),
+  topicInput: document.getElementById("topicInput"),
+  addTopic: document.getElementById("addTopic"),
+  topicList: document.getElementById("topicList"),
 };
 
 const credibilityMap = {
@@ -90,6 +94,8 @@ const state = {
   briefing: localStorage.getItem("briefing") || "standard",
   range: localStorage.getItem("range") || "7d",
   exact: localStorage.getItem("exact") === "true",
+  myBrief: localStorage.getItem("myBrief") === "true",
+  topics: JSON.parse(localStorage.getItem("topics") || "[]"),
 };
 
 function setStatus(message) {
@@ -343,6 +349,17 @@ function cardTemplate(article) {
     ? `<a href="${escapeHtml(article.url)}" target="_blank" rel="noopener">Read the full story</a>`
     : "";
 
+  const summaryLabel = article.summary ? "AI summary" : "Quick summary";
+  const shareButton = article.url
+    ? `<button class="share" type="button" data-url="${escapeHtml(article.url)}">Share</button>`
+    : "";
+  const actions = `
+    <div class="card-actions">
+      ${shareButton}
+      <span class="summary-tag">${escapeHtml(summaryLabel)}</span>
+    </div>
+  `;
+
   return `
     <article class="card">
       <div class="meta">${meta}</div>
@@ -353,6 +370,7 @@ function cardTemplate(article) {
         ${safeBullets}
       </ul>
       <div class="why"><strong>Why it matters:</strong> ${safeWhy}</div>
+      ${actions}
       ${link}
     </article>
   `;
@@ -384,6 +402,8 @@ function getCacheKey() {
     briefing: state.briefing,
     range: state.range,
     exact: state.exact,
+    myBrief: state.myBrief,
+    topics: state.topics,
     page,
   });
 }
@@ -417,15 +437,18 @@ function writeCache(data) {
 }
 
 function setMode(mode) {
-  state.mode = mode;
-  localStorage.setItem("mode", mode);
-  elements.modeHeadlines.classList.toggle("active", mode === "headlines");
-  elements.modeSearch.classList.toggle("active", mode === "search");
+  const effectiveMode = state.myBrief ? "search" : mode;
+  state.mode = effectiveMode;
+  localStorage.setItem("mode", effectiveMode);
+  elements.modeHeadlines.classList.toggle("active", effectiveMode === "headlines");
+  elements.modeSearch.classList.toggle("active", effectiveMode === "search");
 
-  const isSearch = mode === "search";
+  const isSearch = effectiveMode === "search";
   elements.categoryChips.classList.toggle("disabled", isSearch);
 
-  if (isSearch) {
+  if (state.myBrief) {
+    elements.hint.textContent = "My Brief uses your saved topics across sources.";
+  } else if (isSearch) {
     elements.hint.textContent = "Search ignores country and category. Use Headlines for local news.";
   } else {
     elements.hint.textContent = "Headlines use country + category. Switch to Search for global topics.";
@@ -455,6 +478,54 @@ function setExact(value) {
   localStorage.setItem("exact", value ? "true" : "false");
 }
 
+function setMyBrief(value) {
+  state.myBrief = value;
+  localStorage.setItem("myBrief", value ? "true" : "false");
+  elements.myBrief.checked = value;
+  setMode(value ? "search" : state.mode);
+}
+
+function normalizeTopic(value) {
+  return cleanText(stripHtml(value));
+}
+
+function renderTopics() {
+  if (!state.topics.length) {
+    elements.topicList.innerHTML = "";
+    return;
+  }
+
+  elements.topicList.innerHTML = state.topics
+    .map(
+      (topic) => `
+        <span class="topic-chip">
+          ${escapeHtml(topic)}
+          <button type="button" data-topic="${escapeHtml(topic)}" aria-label="Remove ${escapeHtml(topic)}">×</button>
+        </span>
+      `
+    )
+    .join("");
+}
+
+function addTopic(topic) {
+  const cleaned = normalizeTopic(topic);
+  if (!cleaned) return;
+  const normalized = cleaned.toLowerCase();
+  const exists = state.topics.some((item) => item.toLowerCase() === normalized);
+  if (!exists) {
+    state.topics.unshift(cleaned);
+    state.topics = state.topics.slice(0, 8);
+    localStorage.setItem("topics", JSON.stringify(state.topics));
+  }
+  renderTopics();
+}
+
+function removeTopic(topic) {
+  state.topics = state.topics.filter((item) => item !== topic);
+  localStorage.setItem("topics", JSON.stringify(state.topics));
+  renderTopics();
+}
+
 function renderNews(articles, replace = false) {
   const html = articles.map(cardTemplate).join("");
   if (replace) {
@@ -475,7 +546,7 @@ async function fetchGlobalFallback() {
 }
 
 async function prefetchNextPage(params) {
-  if (prefetchCache || state.mode !== "headlines") return;
+  if (prefetchCache || state.myBrief || state.mode !== "headlines") return;
   const nextParams = new URLSearchParams(params);
   nextParams.set("page", "2");
   try {
@@ -503,26 +574,29 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
   localStorage.setItem("country", state.country);
 
   const briefing = getBriefingConfig();
+  const activeMode = state.myBrief ? "search" : state.mode;
 
   const params = new URLSearchParams({
     pageSize: briefing.pageSize,
     summary_limit: briefing.summaryLimit,
     summaries: "1",
     page,
-    mode: state.mode,
+    mode: activeMode,
     country: state.country,
     range: state.range,
     exact: state.exact ? "1" : "0",
   });
 
-  if (state.mode === "search") {
-    if (!state.query) {
-      setStatus("Type a search term to explore global stories.");
+  if (activeMode === "search") {
+    const topicQuery = state.myBrief ? state.topics.join(" OR ") : "";
+    const combinedQuery = [topicQuery, state.query].filter(Boolean).join(" OR ");
+    if (!combinedQuery) {
+      setStatus(state.myBrief ? "Add a topic to build your brief." : "Type a search term to explore global stories.");
       elements.news.innerHTML = "";
       setLoadMoreVisible(false);
       return;
     }
-    params.set("query", state.query);
+    params.set("query", combinedQuery);
   } else {
     if (state.category) {
       params.set("category", state.category);
@@ -581,14 +655,14 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     const totalResults = data.totalResults || 0;
 
     if (!articles.length) {
-      if (state.mode === "headlines" && state.category && fallbackAllowed) {
+      if (activeMode === "headlines" && state.category && fallbackAllowed) {
         setCategory("");
         setStatus("No results for that category. Showing all headlines instead.");
         await fetchNews({ reset: true, fallbackAllowed: false });
         return;
       }
 
-      if (state.mode === "headlines" && fallbackAllowed) {
+      if (activeMode === "headlines" && fallbackAllowed) {
         setLoading(false);
         await fetchGlobalFallback();
         return;
@@ -606,7 +680,7 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     setStatus(`Showing ${clustered.length} headlines.`);
 
     const hasMore = totalResults > cachedArticles.length;
-    setLoadMoreVisible(hasMore);
+    setLoadMoreVisible(hasMore && !state.myBrief);
 
     if (page === 1) {
       writeCache(cachedArticles);
@@ -631,8 +705,9 @@ function init() {
   elements.briefing.value = state.briefing;
   elements.range.value = state.range;
   elements.exact.checked = state.exact;
+  renderTopics();
 
-  setMode(state.mode);
+  setMyBrief(state.myBrief);
   setCategory(state.category);
 
   elements.refresh.addEventListener("click", () => {
@@ -647,11 +722,13 @@ function init() {
   });
 
   elements.country.addEventListener("change", () => {
+    if (state.myBrief) setMyBrief(false);
     setMode("headlines");
     fetchNews({ reset: true });
   });
 
   elements.modeHeadlines.addEventListener("click", () => {
+    if (state.myBrief) setMyBrief(false);
     setMode("headlines");
     fetchNews({ reset: true });
   });
@@ -664,11 +741,44 @@ function init() {
   elements.categoryChips.addEventListener("click", (event) => {
     const chip = event.target.closest(".chip");
     if (!chip) return;
+    if (state.myBrief) setMyBrief(false);
     if (state.mode === "search") {
       setMode("headlines");
     }
     setCategory(chip.dataset.category || "");
     fetchNews({ reset: true });
+  });
+
+  elements.myBrief.addEventListener("change", () => {
+    setMyBrief(elements.myBrief.checked);
+    fetchNews({ reset: true });
+  });
+
+  elements.addTopic.addEventListener("click", () => {
+    addTopic(elements.topicInput.value);
+    elements.topicInput.value = "";
+    if (state.myBrief) {
+      fetchNews({ reset: true });
+    }
+  });
+
+  elements.topicInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      addTopic(elements.topicInput.value);
+      elements.topicInput.value = "";
+      if (state.myBrief) {
+        fetchNews({ reset: true });
+      }
+    }
+  });
+
+  elements.topicList.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-topic]");
+    if (!button) return;
+    removeTopic(button.dataset.topic);
+    if (state.myBrief) {
+      fetchNews({ reset: true });
+    }
   });
 
   elements.briefing.addEventListener("change", () => {
@@ -693,6 +803,25 @@ function init() {
   elements.loadMore.addEventListener("click", () => {
     page += 1;
     fetchNews({ reset: false });
+  });
+
+  elements.news.addEventListener("click", async (event) => {
+    const shareButton = event.target.closest(".share");
+    if (!shareButton) return;
+    const url = shareButton.dataset.url;
+    if (!url) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: document.title, url });
+      } catch (error) {
+        // user cancelled
+      }
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      setStatus("Link copied to clipboard.");
+    } else {
+      setStatus("Copy link: " + url);
+    }
   });
 
   fetchNews({ reset: true });

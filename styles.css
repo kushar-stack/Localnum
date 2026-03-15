@@ -75,6 +75,10 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.control-row.quaternary {
+  grid-template-columns: auto 1fr auto;
+}
+
 .mode-toggle {
   display: inline-flex;
   background: var(--chip);
@@ -175,6 +179,31 @@ button.ghost {
   font-size: 0.9rem;
 }
 
+.topic-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.topic-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--chip);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--muted);
+}
+
+.topic-chip button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
 .status {
   margin: 1rem 0 1.5rem;
   color: var(--muted);
@@ -254,6 +283,28 @@ button.ghost {
   background: #4b5563;
 }
 
+.card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.summary-tag {
+  font-size: 0.78rem;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--muted);
+}
+
+.share {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--line);
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-family: "Space Grotesk", sans-serif;
+}
+
 .card a {
   color: var(--accent);
   text-decoration: none;
@@ -305,6 +356,10 @@ button.ghost {
   }
 
   .control-row.tertiary {
+    grid-template-columns: 1fr;
+  }
+
+  .control-row.quaternary {
     grid-template-columns: 1fr;
   }
 
