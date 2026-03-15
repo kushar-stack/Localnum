@@ -52,6 +52,10 @@ function setLoading(loading) {
   elements.refresh.setAttribute("aria-busy", loading ? "true" : "false");
 }
 
+function setLoadMoreVisible(visible) {
+  elements.loadMore.classList.toggle("hidden", !visible);
+}
+
 function escapeHtml(value) {
   if (!value) return "";
   return String(value)
@@ -192,15 +196,15 @@ function cardTemplate(article) {
       ? [article.source.name]
       : [];
 
-  const sourceRow = sources.length
-    ? `<div class="source-row">${sources
+  const badgeLabel = sources.length ? getCredibilityBadge(sources[0]) : "";
+  const badge = badgeLabel ? `<span class="badge">${escapeHtml(badgeLabel)}</span>` : "";
+
+  const sourceRow = sources.length || badge
+    ? `<div class="source-row">${badge}${sources
         .slice(0, 4)
         .map((name) => `<span class="source-pill">${escapeHtml(name)}</span>`)
         .join("")}</div>`
     : "";
-
-  const badgeLabel = getCredibilityBadge(sources[0] || article.source?.name);
-  const badge = badgeLabel ? `<span class="badge">${escapeHtml(badgeLabel)}</span>` : "";
 
   const link = article.url
     ? `<a href="${escapeHtml(article.url)}" target="_blank" rel="noopener">Read the full story</a>`
@@ -211,7 +215,6 @@ function cardTemplate(article) {
       <div class="meta">${meta}</div>
       <h3>${title}</h3>
       ${sourceRow}
-      ${badge}
       <ul>
         ${safeBullets}
       </ul>
@@ -306,7 +309,17 @@ function renderNews(articles, replace = false) {
   }
 }
 
-async function fetchNews({ reset = false } = {}) {
+async function fetchGlobalFallback() {
+  setMode("search");
+  const fallbackQuery = elements.query.value.trim() || "news";
+  elements.query.value = fallbackQuery;
+  state.query = fallbackQuery;
+  localStorage.setItem("query", state.query);
+  setStatus("No local headlines. Showing global results instead.");
+  await fetchNews({ reset: true, fallbackAllowed: false });
+}
+
+async function fetchNews({ reset = false, fallbackAllowed = true } = {}) {
   if (isLoading) return;
 
   if (reset) {
@@ -330,6 +343,7 @@ async function fetchNews({ reset = false } = {}) {
     if (!state.query) {
       setStatus("Type a search term to explore global stories.");
       elements.news.innerHTML = "";
+      setLoadMoreVisible(false);
       return;
     }
     params.set("query", state.query);
@@ -343,6 +357,7 @@ async function fetchNews({ reset = false } = {}) {
   if (page === 1) {
     elements.news.innerHTML = Array.from({ length: 6 }, skeletonTemplate).join("");
   }
+  setLoadMoreVisible(false);
 
   if (currentController) {
     currentController.abort();
@@ -357,6 +372,7 @@ async function fetchNews({ reset = false } = {}) {
     const clustered = clusterArticles(cachedArticles);
     renderNews(clustered, true);
     setStatus(`Showing ${clustered.length} headlines.`);
+    setLoadMoreVisible(false);
     setLoading(false);
     return;
   }
@@ -382,10 +398,24 @@ async function fetchNews({ reset = false } = {}) {
 
     const data = await response.json();
     const articles = data.articles || [];
+    const totalResults = data.totalResults || 0;
 
     if (!articles.length) {
+      if (state.mode === "headlines" && state.category && fallbackAllowed) {
+        setCategory("");
+        setStatus("No results for that category. Showing all headlines instead.");
+        await fetchNews({ reset: true, fallbackAllowed: false });
+        return;
+      }
+
+      if (state.mode === "headlines" && fallbackAllowed) {
+        await fetchGlobalFallback();
+        return;
+      }
+
       setStatus("No articles found. Try a different query.");
       if (page === 1) elements.news.innerHTML = "";
+      setLoadMoreVisible(false);
       return;
     }
 
@@ -393,6 +423,9 @@ async function fetchNews({ reset = false } = {}) {
     const clustered = clusterArticles(cachedArticles);
     renderNews(clustered, page === 1);
     setStatus(`Showing ${clustered.length} headlines.`);
+
+    const hasMore = totalResults > cachedArticles.length;
+    setLoadMoreVisible(hasMore && state.mode === "headlines");
 
     if (page === 1) {
       writeCache(cachedArticles);
