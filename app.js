@@ -316,11 +316,11 @@ async function fetchGlobalFallback() {
   state.query = fallbackQuery;
   localStorage.setItem("query", state.query);
   setStatus("No local headlines. Showing global results instead.");
-  await fetchNews({ reset: true, fallbackAllowed: false });
+  await fetchNews({ reset: true, fallbackAllowed: false, force: true });
 }
 
-async function fetchNews({ reset = false, fallbackAllowed = true } = {}) {
-  if (isLoading) return;
+async function fetchNews({ reset = false, fallbackAllowed = true, force = false } = {}) {
+  if (isLoading && !force) return;
 
   if (reset) {
     page = 1;
@@ -365,6 +365,9 @@ async function fetchNews({ reset = false, fallbackAllowed = true } = {}) {
   currentController = new AbortController();
 
   setLoading(true);
+  const timeoutId = setTimeout(() => {
+    if (currentController) currentController.abort();
+  }, 10000);
 
   const cached = page === 1 ? readCache() : null;
   if (cached) {
@@ -409,6 +412,7 @@ async function fetchNews({ reset = false, fallbackAllowed = true } = {}) {
       }
 
       if (state.mode === "headlines" && fallbackAllowed) {
+        setLoading(false);
         await fetchGlobalFallback();
         return;
       }
@@ -434,7 +438,9 @@ async function fetchNews({ reset = false, fallbackAllowed = true } = {}) {
     if (error.name === "AbortError") return;
     const message = error?.message || "Unable to load news. Check your key or network.";
     setStatus(message);
+    if (page === 1) elements.news.innerHTML = "";
   } finally {
+    clearTimeout(timeoutId);
     setLoading(false);
   }
 }
