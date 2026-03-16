@@ -225,7 +225,7 @@ function cardTemplate(article, index = 0) {
   const credLevel = getCredibilityBadge(primarySource);
   const credBadge = credLevel && credLevel !== "Reported"
     ? `<span class="credibility-badge ${escapeHtml(credLevel)}">${credLevel === "High" ? "✓ " : ""}${escapeHtml(credLevel)}</span>`
-    : "";
+    : `<span class="cred-badge verified">✓ Verified Source</span>`;
 
   // Thumbnail — now FIRST, above title
   const catTag = getCategoryTag(article);
@@ -285,10 +285,6 @@ function cardTemplate(article, index = 0) {
         Share
       </button>`
     : "";
-
-    const credBadge = credibility !== "Reported" 
-      ? `<span class="cred-badge ${credibility}">${credibility}</span>`
-      : `<span class="cred-badge verified">✓ Verified Source</span>`;
 
   return `
     <article class="card animate-in" data-id="${article.id || ""}" style="animation-delay: ${(index % 12) * 0.07}s">
