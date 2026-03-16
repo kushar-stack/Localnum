@@ -1,4 +1,4 @@
-const CACHE_NAME = "busy-brief-v2"; // Incremented version
+const CACHE_NAME = "busy-brief-v3";
 const ASSETS = [
   "/",
   "/index.html",
@@ -7,10 +7,12 @@ const ASSETS = [
   "/logic.js",
   "/utils.js",
   "/constants.js",
-  "/db.js"
+  "/db.js",
 ];
 
-// Install: Cache essential assets
+// ============================================================
+// INSTALL — cache core assets
+// ============================================================
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
@@ -18,22 +20,71 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate: Clean up old caches
+// ============================================================
+// ACTIVATE — clean old caches
+// ============================================================
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+// ============================================================
+// FETCH — network first, cache fallback
+// ============================================================
+self.addEventListener("fetch", (event) => {
+  // Don't intercept API calls — always fresh
+  if (event.request.url.includes("/api/")) return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful GET responses for static assets
+        if (response.ok && event.request.method === "GET") {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
+  );
+});
+
+// ============================================================
+// PUSH NOTIFICATIONS — daily morning brief
+// ============================================================
+self.addEventListener("push", (event) => {
+  let data = { title: "Busy Brief", body: "Your morning brief is ready. Stay sharp." };
+  try {
+    if (event.data) data = event.data.json();
+  } catch {}
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Busy Brief", {
+      body: data.body || "Your morning brief is ready.",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-72.png",
+      tag: "daily-brief",
+      renotify: false,
+      requireInteraction: false,
+      data: { url: self.location.origin },
     })
   );
 });
 
-// Fetch: NETWORK FIRST strategy for better reliability
-self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
+// Open app when notification is clicked
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || self.location.origin;
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === targetUrl && "focus" in client) return client.focus();
+      }
+      return clients.openWindow(targetUrl);
     })
   );
 });
