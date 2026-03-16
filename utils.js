@@ -23,7 +23,13 @@ export function cleanText(text) {
 
 export function stripHtml(text) {
   if (!text) return "";
-  return String(text).replace(/<[^>]+>/g, " ");
+  // First unescape common entities that might contain tags, then strip tags
+  return String(text)
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function clampText(text, maxLength) {

@@ -60,6 +60,7 @@ function normalizeTitle(title) {
   return title
     .toLowerCase()
     .replace(/\s+/g, " ")
+    .replace(/\b(breaking|news|update|exclusive|just in):?\s*/gi, "")
     .replace(/\s*[-|–—]\s*[^-]+$/, "")
     .replace(/[^a-z0-9 ]/g, "")
     .trim();

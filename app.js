@@ -364,7 +364,11 @@ function renderNews(articles, replace = false) {
   if (replace) {
     elements.news.innerHTML = html;
   } else {
-    elements.news.insertAdjacentHTML("beforeend", html);
+    // For infinite scroll, we filter out duplicates by checking existing URLs
+    const currentUrls = new Set([...elements.news.querySelectorAll("a[href]")].map(a => a.href));
+    const newArticles = articles.filter(a => !currentUrls.has(a.url));
+    const newHtml = newArticles.map((a, i) => cardTemplate(a, i + currentUrls.size)).join("");
+    elements.news.insertAdjacentHTML("beforeend", newHtml);
   }
 }
 
