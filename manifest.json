@@ -1,0 +1,17 @@
+{
+  "name": "Busy Brief",
+  "short_name": "BusyBrief",
+  "description": "Minimal summaries. Maximum signal.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f4ee",
+  "theme_color": "#0d3b2e",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2965/2965879.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

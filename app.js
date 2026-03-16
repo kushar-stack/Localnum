@@ -1,10 +1,7 @@
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-const BRIEFING_MAP = {
-  quick: { label: "2-Min Brief", pageSize: 6, summaryLimit: 6 },
-  standard: { label: "Standard Brief", pageSize: 12, summaryLimit: 8 },
-  deep: { label: "Deep Dive", pageSize: 20, summaryLimit: 12 },
-};
+import { db } from "./db.js";
+import { CACHE_TTL_MS, BRIEFING_MAP, credibilityMap, biasMap, blockedSources } from "./constants.js";
+import { escapeHtml, cleanText, stripHtml, clampText, sanitizeBullet, escapeRegExp, sentenceSplit, formatDate, formatDateRange, getCredibilityBadge, getBiasBadge } from "./utils.js";
+import { summarizeArticle, clusterArticles } from "./logic.js";
 
 const elements = {
   query: document.getElementById("query"),
@@ -41,60 +38,6 @@ const elements = {
   resetFilters: document.getElementById("resetFilters"),
 };
 
-const credibilityMap = {
-  "reuters": "High",
-  "associated press": "High",
-  "the associated press": "High",
-  "ap": "High",
-  "bbc news": "High",
-  "financial times": "High",
-  "the wall street journal": "High",
-  "the new york times": "High",
-  "bloomberg": "High",
-  "cbs news": "Medium",
-  "abc news": "Medium",
-  "nbc news": "Medium",
-  "cnbc": "Medium",
-  "the washington post": "High",
-  "the economist": "High",
-  "al jazeera": "Medium",
-  "fox news": "Medium",
-  "the guardian": "Medium",
-  "cnn": "Medium",
-  "politico": "Medium",
-  "tmz": "Low",
-};
-
-const biasMap = {
-  "reuters": "Center",
-  "associated press": "Center",
-  "the associated press": "Center",
-  "ap": "Center",
-  "bbc news": "Center",
-  "financial times": "Center",
-  "the wall street journal": "Right",
-  "the new york times": "Left",
-  "bloomberg": "Center",
-  "cbs news": "Center",
-  "abc news": "Center",
-  "nbc news": "Center",
-  "cnbc": "Center",
-  "the washington post": "Left",
-  "the economist": "Center",
-  "al jazeera": "Center",
-  "fox news": "Right",
-  "the guardian": "Left",
-  "cnn": "Left",
-  "politico": "Center",
-  "tmz": "Entertainment",
-};
-
-const blockedSources = new Set([
-  "new york post",
-  "daily mail",
-  "the sun",
-]);
-
 let isLoading = false;
 let currentController = null;
 let cachedArticles = [];
@@ -121,8 +64,22 @@ const state = {
   view: localStorage.getItem("view") || "cards",
 };
 
+let statusTimeout;
 function setStatus(message) {
+  if (!message) {
+    elements.status.classList.remove("show");
+    return;
+  }
   elements.status.textContent = message;
+  elements.status.classList.add("show");
+  
+  if (statusTimeout) clearTimeout(statusTimeout);
+  
+  if (message !== "Fetching latest headlines..." && message !== "Loading more stories...") {
+    statusTimeout = setTimeout(() => {
+      elements.status.classList.remove("show");
+    }, 4000);
+  }
 }
 
 function setLoading(loading, replaceNews = false) {
@@ -142,201 +99,6 @@ function setLoadMoreVisible(visible) {
   elements.loadMore.classList.toggle("hidden", !visible);
 }
 
-function escapeHtml(value) {
-  if (!value) return "";
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function cleanText(text) {
-  if (!text) return "";
-  return text
-    .replace(/\s+/g, " ")
-    .replace(/\[[+\-]?\d+\s*chars\]/gi, "")
-    .trim();
-}
-
-function stripHtml(text) {
-  if (!text) return "";
-  return String(text).replace(/<[^>]+>/g, " ");
-}
-
-function clampText(text, maxLength) {
-  if (!text) return "";
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
-}
-
-function sanitizeBullet(text) {
-  const cleaned = cleanText(stripHtml(text));
-  if (!cleaned || !/[a-z0-9]/i.test(cleaned)) return "";
-  return clampText(cleaned, 180);
-}
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function sentenceSplit(text) {
-  return cleanText(text)
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-function pickBullets(sentences) {
-  const bullets = [];
-  for (const sentence of sentences) {
-    const clean = sentence.replace(/\s+/g, " ").trim();
-    if (clean.length >= 40 && clean.length <= 180) {
-      bullets.push(clean);
-    }
-    if (bullets.length === 3) break;
-  }
-  return bullets;
-}
-
-function summarizeArticle(article) {
-  let bullets = [];
-  let why = "";
-
-  if (article.summary?.bullets?.length) {
-    bullets = article.summary.bullets.map(sanitizeBullet).filter(Boolean);
-    why = sanitizeBullet(article.summary.why);
-  }
-
-  const sourceText = [article.description, article.content]
-    .map(cleanText)
-    .filter(Boolean)
-    .join(" ");
-
-  if (bullets.length < 3) {
-    const sentences = sentenceSplit(sourceText);
-    bullets = [...bullets, ...pickBullets(sentences)].slice(0, 3);
-  }
-
-  while (bullets.length < 3) {
-    if (bullets.length === 0) {
-      bullets.push(`Developing story on ${article.title || "this topic"}.`);
-    } else if (bullets.length === 1) {
-      bullets.push(`Key details are emerging from ${article.source?.name || "multiple"} reports.`);
-    } else {
-      bullets.push("Impact and context are still coming into focus.");
-    }
-  }
-
-  const titleSeed = article.title ? article.title.split(":")[0] : "this development";
-  if (!why) {
-    why = article.description
-      ? clampText(cleanText(article.description), 140)
-      : `Signals momentum around ${titleSeed.toLowerCase()}.`;
-  }
-
-  return { bullets, why };
-}
-
-function formatDate(dateString) {
-  if (!dateString) return "";
-  const date = new Date(dateString);
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatDateRange(first, last) {
-  if (!first || !last) return "";
-  const firstText = formatDate(first);
-  const lastText = formatDate(last);
-  if (firstText === lastText) return lastText;
-  return `First ${firstText} · Updated ${lastText}`;
-}
-
-function normalizeTitle(title) {
-  if (!title) return "";
-  return title
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .replace(/\s*[-|–—]\s*[^-]+$/, "")
-    .replace(/[^a-z0-9 ]/g, "")
-    .trim();
-}
-
-function clusterArticles(articles) {
-  const map = new Map();
-
-  for (const article of articles) {
-    const sourceName = article.source?.name?.toLowerCase();
-    if (sourceName && blockedSources.has(sourceName)) continue;
-
-    const key = normalizeTitle(article.title || article.url || "");
-    if (!key) continue;
-
-    if (!map.has(key)) {
-      map.set(key, {
-        ...article,
-        sources: new Set([article.source?.name].filter(Boolean)),
-        firstPublishedAt: article.publishedAt,
-        lastPublishedAt: article.publishedAt,
-      });
-    } else {
-      const existing = map.get(key);
-      if (article.source?.name) {
-        existing.sources.add(article.source.name);
-      }
-      if (article.publishedAt) {
-        const published = new Date(article.publishedAt);
-        const first = new Date(existing.firstPublishedAt || article.publishedAt);
-        const last = new Date(existing.lastPublishedAt || article.publishedAt);
-        if (published < first) existing.firstPublishedAt = article.publishedAt;
-        if (published > last) {
-          existing.lastPublishedAt = article.publishedAt;
-          existing.url = article.url;
-          existing.title = article.title;
-          existing.description = article.description;
-          existing.content = article.content;
-          existing.summary = article.summary || existing.summary;
-        }
-      }
-      if (!existing.summary && article.summary) {
-        existing.summary = article.summary;
-      }
-    }
-  }
-
-  return Array.from(map.values()).map((item) => ({
-    ...item,
-    sources: Array.from(item.sources || []),
-  }));
-}
-
-function getCredibilityBadge(source) {
-  if (!source) return "";
-  const key = source.toLowerCase();
-  return credibilityMap[key] || "Reported";
-}
-
-function getBiasBadge(source) {
-  if (!source) return "";
-  const key = source.toLowerCase();
-  return biasMap[key] || "Unknown";
-}
-
-function getSignalScore(article) {
-  const sourcesCount = Array.isArray(article.sources) ? article.sources.length : 1;
-  const publishedAt = article.lastPublishedAt || article.publishedAt;
-  const publishedTime = publishedAt ? new Date(publishedAt).getTime() : Date.now();
-  const hoursAgo = Math.max(0, (Date.now() - publishedTime) / 36e5);
-  const freshness = hoursAgo < 6 ? 25 : hoursAgo < 24 ? 15 : hoursAgo < 72 ? 5 : 0;
-  const sourceBoost = Math.min(20, sourcesCount * 8);
-  const score = Math.min(100, 55 + freshness + sourceBoost);
-  return Math.round(score);
-}
 
 function formatTitle(title, source) {
   if (!title) return "Untitled";
@@ -352,7 +114,7 @@ function formatTitle(title, source) {
   return cleaned || "Untitled";
 }
 
-function cardTemplate(article) {
+function cardTemplate(article, index = 0) {
   const { bullets, why } = summarizeArticle(article);
   const meta = [article.source?.name, formatDateRange(article.firstPublishedAt, article.lastPublishedAt) || formatDate(article.publishedAt)]
     .filter(Boolean)
@@ -368,15 +130,12 @@ function cardTemplate(article) {
       ? [article.source.name]
       : [];
 
-  const sourceRow = sources.length
+  const sourceRow = sources.length > 1
     ? `<div class="source-row">${sources
         .slice(0, 4)
         .map((name) => `<span class="source-pill">${escapeHtml(name)}</span>`)
         .join("")}</div>`
     : "";
-
-  const signalScore = getSignalScore(article);
-  const signal = `<span class="signal">Signal ${signalScore}</span>`;
 
   const link = article.url
     ? `<a href="${escapeHtml(article.url)}" target="_blank" rel="noopener">Read the full story</a>`
@@ -398,10 +157,9 @@ function cardTemplate(article) {
     : "";
 
   return `
-    <article class="card">
+    <article class="card animate-in" style="animation-delay: ${(index % 12) * 0.08}s">
       <div class="card-top">
         <div class="meta">${meta}</div>
-        ${signal}
       </div>
       ${thumbnail}
       <h3>${title}</h3>
@@ -451,11 +209,13 @@ function getCacheKey() {
   });
 }
 
-function readCache() {
+/**
+ * CACHE UPGRADE: Using IndexedDB via db.js instead of localStorage.
+ */
+async function readCache() {
   try {
-    const raw = localStorage.getItem("newsCache");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
+    const parsed = await db.get("newsCache");
+    if (!parsed) return null;
     if (Date.now() - parsed.timestamp > CACHE_TTL_MS) return null;
     if (parsed.key !== getCacheKey()) return null;
     return parsed.data;
@@ -464,16 +224,13 @@ function readCache() {
   }
 }
 
-function writeCache(data) {
+async function writeCache(data) {
   try {
-    localStorage.setItem(
-      "newsCache",
-      JSON.stringify({
-        key: getCacheKey(),
-        timestamp: Date.now(),
-        data,
-      })
-    );
+    await db.set("newsCache", {
+      key: getCacheKey(),
+      timestamp: Date.now(),
+      data,
+    });
   } catch (error) {
     // ignore cache failures
   }
@@ -603,7 +360,7 @@ function removeTopic(topic) {
 }
 
 function renderNews(articles, replace = false) {
-  const html = articles.map(cardTemplate).join("");
+  const html = articles.map((a, i) => cardTemplate(a, i)).join("");
   if (replace) {
     elements.news.innerHTML = html;
   } else {
@@ -801,14 +558,8 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
   updateContext(activeMode);
 
   const params = new URLSearchParams({
-    pageSize: briefing.pageSize,
-    summary_limit: briefing.summaryLimit,
-    summaries: "1",
     page,
-    mode: activeMode,
-    country: state.country,
-    range: state.range,
-    exact: state.exact ? "1" : "0",
+    pageSize: briefing.pageSize,
   });
 
   if (activeMode === "search") {
@@ -822,10 +573,10 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     }
     params.set("query", combinedQuery);
     params.set("sortBy", state.sortBy);
+    params.set("from", state.range === "24h" ? new Date(Date.now() - 864e5).toISOString() : state.range === "7d" ? new Date(Date.now() - 6048e5).toISOString() : new Date(Date.now() - 2592e6).toISOString());
   } else {
-    if (state.category) {
-      params.set("category", state.category);
-    }
+    params.set("country", state.country);
+    if (state.category) params.set("category", state.category);
   }
 
   setStatus(page === 1 ? "Fetching latest headlines..." : "Loading more stories...");
@@ -835,9 +586,7 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
   }
   setLoadMoreVisible(false);
 
-  if (currentController) {
-    currentController.abort();
-  }
+  if (currentController) currentController.abort();
   currentController = new AbortController();
 
   setLoading(true);
@@ -845,71 +594,42 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     if (currentController) currentController.abort();
   }, 10000);
 
-  const cached = page === 1 ? readCache() : null;
+  const cached = page === 1 ? await readCache() : null;
   if (cached) {
     cachedArticles = cached;
     const clustered = clusterArticles(cachedArticles);
     const filtered = applyFilters(clustered);
     renderNews(filtered, true);
     currentBrief = filtered;
-    updateContext(activeMode);
     const filtersActive = state.qualityFilter !== "all" || state.coverageFilter !== "all";
     if (!filtered.length && filtersActive) {
       setStatus("Filters removed all stories. Try loosening filters.");
       showFilterNotice(true);
     } else {
       setStatus(`Showing ${filtered.length} of ${clustered.length} stories.`);
-      showFilterNotice(false);
     }
     updateHeroStats(filtered.length);
-    setLoadMoreVisible(false);
     setLoading(false);
     clearTimeout(timeoutId);
     return;
   }
 
   try {
-    const response = await fetch(`/api/news?${params.toString()}`, {
-      signal: currentController.signal,
-    });
-
-    if (!response.ok) {
-      let errorMessage = `NewsAPI error: ${response.status}`;
-      try {
-        const payload = await response.json();
-        if (payload?.error) {
-          errorMessage = payload.error;
-        }
-      } catch (parseError) {
-        const text = await response.text();
-        if (text) errorMessage = text;
-      }
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
+    const res = await fetch(`/api/news?${params.toString()}`, { signal: currentController.signal });
+    if (!res.ok) throw new Error("API failed");
+    const data = await res.json();
     const articles = data.articles || [];
     const totalResults = data.totalResults || 0;
 
     if (!articles.length) {
-      if (activeMode === "headlines" && state.category && fallbackAllowed) {
-        setCategory("");
-        setStatus("No results for that category. Showing all headlines instead.");
-        await fetchNews({ reset: true, fallbackAllowed: false });
-        return;
-      }
-
       if (activeMode === "headlines" && fallbackAllowed) {
         setLoading(false);
         await fetchGlobalFallback();
         return;
       }
-
-      setStatus("No articles found. Try a different query.");
+      setStatus("No articles found.");
       if (page === 1) elements.news.innerHTML = "";
       updateHeroStats(0);
-      showFilterNotice(false);
-      setLoadMoreVisible(false);
       return;
     }
 
@@ -918,19 +638,10 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     const filtered = applyFilters(clustered);
     renderNews(filtered, page === 1);
     currentBrief = filtered;
-    updateContext(activeMode);
-    const filtersActive = state.qualityFilter !== "all" || state.coverageFilter !== "all";
-    if (!filtered.length && filtersActive) {
-      setStatus("Filters removed all stories. Try loosening filters.");
-      showFilterNotice(true);
-    } else {
-      setStatus(`Showing ${filtered.length} of ${clustered.length} stories.`);
-      showFilterNotice(false);
-    }
+    setStatus(`Showing ${filtered.length} of ${clustered.length} stories.`);
     updateHeroStats(filtered.length);
 
-    const hasMore = totalResults > cachedArticles.length;
-    setLoadMoreVisible(hasMore && !state.myBrief);
+    setLoadMoreVisible(totalResults > cachedArticles.length && !state.myBrief);
 
     if (page === 1) {
       writeCache(cachedArticles);
@@ -938,19 +649,45 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
         window.requestIdleCallback(() => prefetchNextPage(params));
       }
     }
-  } catch (error) {
-    if (error.name === "AbortError") return;
-    const message = error?.message || "Unable to load news. Check your key or network.";
-    setStatus(message);
-    showFilterNotice(false);
-    if (page === 1) elements.news.innerHTML = "";
+  } catch (err) {
+    if (err.name === "AbortError") return;
+    setStatus("Failed to load news.");
   } finally {
     clearTimeout(timeoutId);
     setLoading(false);
   }
 }
 
+/**
+ * INITIALIZATION
+ */
 function init() {
+  const themeToggle = document.getElementById("themeToggle");
+  const iconMoon = themeToggle.querySelector(".icon-moon");
+  const iconSun = themeToggle.querySelector(".icon-sun");
+
+  function applyTheme(theme) {
+    if (theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+      document.documentElement.setAttribute("data-theme", "dark");
+      iconMoon.style.display = "none";
+      iconSun.style.display = "block";
+    } else {
+      document.documentElement.setAttribute("data-theme", "light");
+      iconMoon.style.display = "block";
+      iconSun.style.display = "none";
+    }
+  }
+
+  const savedTheme = localStorage.getItem("theme") || "system";
+  applyTheme(savedTheme);
+
+  themeToggle.addEventListener("click", () => {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    const newTheme = isDark ? "light" : "dark";
+    localStorage.setItem("theme", newTheme);
+    applyTheme(newTheme);
+  });
+
   elements.query.value = state.query;
   elements.country.value = state.country;
   elements.briefing.value = state.briefing;
@@ -966,12 +703,21 @@ function init() {
   setMyBrief(state.myBrief);
   setCategory(state.category);
 
-  elements.refresh.addEventListener("click", () => {
-    fetchNews({ reset: true });
+  elements.refresh.addEventListener("click", () => fetchNews({ reset: true }));
+
+  let searchTimeout;
+  elements.query.addEventListener("input", () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      setMode("search");
+      fetchNews({ reset: true });
+    }, 500);
   });
 
-  elements.query.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
+  elements.query.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      clearTimeout(searchTimeout);
       setMode("search");
       fetchNews({ reset: true });
     }
@@ -994,26 +740,20 @@ function init() {
     fetchNews({ reset: true });
   });
 
-  elements.categoryChips.addEventListener("click", (event) => {
-    const chip = event.target.closest(".chip");
+  elements.categoryChips.addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
     if (!chip) return;
     if (state.myBrief) setMyBrief(false);
-    
     if (chip.dataset.category !== undefined) {
       if (state.mode !== "headlines") setMode("headlines");
       setCategory(chip.dataset.category);
       fetchNews({ reset: true });
     } else if (chip.dataset.query !== undefined) {
       if (state.mode !== "search") setMode("search");
-      setCategory("", true); // suppress highlighting "All"
-      
+      setCategory("", true);
       elements.query.value = chip.dataset.query;
       state.query = chip.dataset.query;
-      localStorage.setItem("query", chip.dataset.query);
-      
-      [...elements.categoryChips.querySelectorAll(".chip")].forEach((c) => {
-        c.classList.toggle("active", c === chip);
-      });
+      [...elements.categoryChips.querySelectorAll(".chip")].forEach((c) => c.classList.toggle("active", c === chip));
       fetchNews({ reset: true });
     }
   });
@@ -1026,77 +766,15 @@ function init() {
   elements.addTopic.addEventListener("click", () => {
     addTopic(elements.topicInput.value);
     elements.topicInput.value = "";
-    if (state.myBrief) {
-      fetchNews({ reset: true });
+    if (state.myBrief) fetchNews({ reset: true });
+  });
+
+  elements.topicList.addEventListener("click", (e) => {
+    const button = e.target.closest("button[data-topic]");
+    if (button) {
+      removeTopic(button.dataset.topic);
+      if (state.myBrief) fetchNews({ reset: true });
     }
-  });
-
-  elements.topicInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      addTopic(elements.topicInput.value);
-      elements.topicInput.value = "";
-      if (state.myBrief) {
-        fetchNews({ reset: true });
-      }
-    }
-  });
-
-  elements.topicList.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-topic]");
-    if (!button) return;
-    removeTopic(button.dataset.topic);
-    if (state.myBrief) {
-      fetchNews({ reset: true });
-    }
-  });
-
-  elements.briefing.addEventListener("change", () => {
-    setBriefing(elements.briefing.value);
-    fetchNews({ reset: true });
-  });
-
-  elements.range.addEventListener("change", () => {
-    setRange(elements.range.value);
-    if (state.mode === "search") {
-      fetchNews({ reset: true });
-    }
-  });
-
-  elements.exact.addEventListener("change", () => {
-    setExact(elements.exact.checked);
-    if (state.mode === "search") {
-      fetchNews({ reset: true });
-    }
-  });
-
-  elements.conciseHeadlines.addEventListener("change", () => {
-    setConciseHeadlines(elements.conciseHeadlines.checked);
-    fetchNews({ reset: true });
-  });
-
-  elements.qualityFilter.addEventListener("change", () => {
-    setQualityFilter(elements.qualityFilter.value);
-    fetchNews({ reset: true });
-  });
-
-  elements.coverageFilter.addEventListener("change", () => {
-    setCoverageFilter(elements.coverageFilter.value);
-    fetchNews({ reset: true });
-  });
-
-  elements.sortBy.addEventListener("change", () => {
-    setSortBy(elements.sortBy.value);
-    if (state.mode === "search") {
-      fetchNews({ reset: true });
-    }
-  });
-
-  elements.viewCards.addEventListener("click", () => {
-    setView("cards");
-  });
-
-  elements.viewList.addEventListener("click", () => {
-    setView("list");
   });
 
   elements.loadMore.addEventListener("click", () => {
@@ -1104,24 +782,8 @@ function init() {
     fetchNews({ reset: false });
   });
 
-  elements.news.addEventListener("click", async (event) => {
-    const shareButton = event.target.closest(".share");
-    if (!shareButton) return;
-    const url = shareButton.dataset.url;
-    if (!url) return;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: document.title, url });
-      } catch (error) {
-        // user cancelled
-      }
-    } else if (navigator.clipboard) {
-      await navigator.clipboard.writeText(url);
-      setStatus("Link copied to clipboard.");
-    } else {
-      setStatus("Copy link: " + url);
-    }
-  });
+  elements.viewCards.addEventListener("click", () => setView("cards"));
+  elements.viewList.addEventListener("click", () => setView("list"));
 
   elements.emailBrief.addEventListener("click", () => {
     const body = encodeURIComponent(buildBriefText());
@@ -1129,13 +791,7 @@ function init() {
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   });
 
-  elements.calendarBrief.addEventListener("click", () => {
-    downloadCalendarReminder();
-  });
-
-  elements.downloadBrief.addEventListener("click", () => {
-    downloadBrief();
-  });
+  elements.downloadBrief.addEventListener("click", downloadBrief);
 
   elements.resetFilters.addEventListener("click", () => {
     setQualityFilter("all");
@@ -1145,8 +801,25 @@ function init() {
     fetchNews({ reset: true });
   });
 
+  /**
+   * INFINITE SCROLL: Recommendation 8
+   */
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !isLoading && elements.loadMore.offsetParent !== null && !elements.loadMore.classList.contains("hidden")) {
+      page += 1;
+      fetchNews({ reset: false });
+    }
+  }, { rootMargin: "200px" });
+  observer.observe(elements.loadMore);
+
   loadEngagedTime();
   startEngagementTracking();
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    });
+  }
 
   fetchNews({ reset: true });
 }
