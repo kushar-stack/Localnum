@@ -789,9 +789,17 @@ async function prefetchNextPage(params) {
 // FETCH NEWS
 // ============================================================
 async function fetchNews({ reset = false, fallbackAllowed = true, force = false } = {}) {
-  if (isLoading && !force) return;
+  // If we are already loading and it's just a background poll, skip.
+  // But if it's a RESET (user clicked a new category/search), we MUST proceed and abort the old one.
+  if (isLoading && !force && !reset) return;
 
-  if (reset) { page = 1; cachedArticles = []; prefetchCache = null; }
+  if (reset) {
+    page = 1;
+    cachedArticles = [];
+    prefetchCache = null;
+    // Abort previous request immediately on reset for snappy navigation
+    if (currentController) currentController.abort();
+  }
 
   state.query = elements.query.value.trim();
   if (elements.country) state.country = elements.country.value;
