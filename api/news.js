@@ -178,17 +178,21 @@ export default async function handler(request, response) {
     // NewsAPI top-headlines requires at least country, category, or sources.
     const isGlobal = !country || country === "all" || country === "global";
     
-    if (!isGlobal) {
+    if (isGlobal) {
+      if (category) {
+        // NewsAPI top-headlines with category REQUIRES a country. 
+        // We default to 'us' for the Global category view to ensure articles load.
+        params.set("country", "us");
+        params.set("category", String(category).slice(0, 20));
+      } else {
+        // Global + All categories = default to curated top global sources
+        params.set("sources", "reuters,bbc-news,cnn,associated-press,the-wall-street-journal,bloomberg");
+      }
+    } else {
       params.set("country", String(country).slice(0, 5));
-    }
-
-    if (category) {
-      params.set("category", String(category).slice(0, 20));
-    } 
-    
-    // If still no parameter (Global + All categories), default to top global sources
-    if (isGlobal && !category) {
-      params.set("sources", "reuters,bbc-news,cnn,associated-press,the-wall-street-journal,bloomberg");
+      if (category) {
+        params.set("category", String(category).slice(0, 20));
+      }
     }
   }
 
