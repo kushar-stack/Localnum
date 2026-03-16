@@ -111,18 +111,9 @@ const categoryConfig = {
 };
 
 function getCategoryTag(article) {
+  // Only show a tag when a category chip is explicitly selected — never infer from search query
   const cat = article.category || state.category || "";
-  const q = (state.query || "").toLowerCase();
-  const cfg =
-    categoryConfig[cat] ||
-    (q.includes("ai") ? categoryConfig.ai :
-     q.includes("market") ? categoryConfig.markets :
-     q.includes("climate") ? categoryConfig.climate :
-     q.includes("politic") ? categoryConfig.politics :
-     q.includes("crypto") ? categoryConfig.crypto :
-     q.includes("space") ? categoryConfig.space :
-     null);
-  return cfg || null;
+  return categoryConfig[cat] || null;
 }
 
 const thumbnailFallbacks = {
@@ -241,28 +232,27 @@ function cardTemplate(article, index = 0) {
     ? `<span class="card-category-tag">${catTag.emoji} ${catTag.label}</span>`
     : "";
 
-  let thumbHtml = "";
-  if (article.urlToImage) {
-    thumbHtml = `
-      <div class="article-thumb-wrap">
-        <img
-          class="article-thumb"
-          src="${escapeHtml(article.urlToImage)}"
-          alt="${title}"
-          width="600" height="190"
-          loading="${index < 3 ? "eager" : "lazy"}"
-          onerror="this.parentElement.innerHTML='<div class=\\"thumb-fallback\\">${catTag?.emoji || "📰"}</div>'"
-        />
-        ${catTagHtml}
-      </div>`;
-  } else {
-    const fallbackEmoji = thumbnailFallbacks[state.category] || catTag?.emoji || "📰";
-    thumbHtml = `
-      <div class="article-thumb-wrap">
-        <div class="thumb-fallback">${fallbackEmoji}</div>
-        ${catTagHtml}
-      </div>`;
-  }
+  const fallbackEmoji = thumbnailFallbacks[state.category] || catTag?.emoji || "📰";
+
+  // CSS layer approach: fallback div always sits behind; onerror just hides the img.
+  // This avoids the innerHTML + nested-quote escaping bug that rendered '" />' as visible text.
+  const thumbImg = article.urlToImage
+    ? `<img
+        class="article-thumb"
+        src="${escapeHtml(article.urlToImage)}"
+        alt=""
+        width="600" height="190"
+        loading="${index < 3 ? "eager" : "lazy"}"
+        onerror="this.style.display='none'"
+      />`
+    : "";
+
+  const thumbHtml = `
+    <div class="article-thumb-wrap">
+      <div class="thumb-fallback" aria-hidden="true">${fallbackEmoji}</div>
+      ${thumbImg}
+      ${catTagHtml}
+    </div>`;
 
   // Why it matters
   const whyHtml = safeWhy
@@ -632,7 +622,7 @@ function updateContext(activeMode) {
   if (activeMode === "search") {
     const query = elements.query.value.trim();
     elements.context.textContent = query
-      ? `Search results for "${query}" across global sources.`
+      ? `Searching global sources for "${query}".`
       : "Search global sources by topic.";
     return;
   }
@@ -640,8 +630,8 @@ function updateContext(activeMode) {
     elements.context.textContent = contextMap[state.category];
     return;
   }
-  const countryLabel = elements.country?.options[elements.country.selectedIndex]?.textContent || "your region";
-  elements.context.textContent = `Top headlines for ${countryLabel}.`;
+  // Plain label — don't claim a specific country since content may be global fallback
+  elements.context.textContent = "Today's top headlines.";
 }
 
 // ============================================================

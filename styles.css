@@ -925,15 +925,17 @@ body {
   background: rgba(0,0,0,0.45);
 }
 
-/* Fallback gradient when no image */
+/* Fallback: sits behind the img via absolute positioning.
+   When img loads it covers this. When img fails (onerror hides it), this shows through. */
 .thumb-fallback {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
-  opacity: 0.4;
+  opacity: 0.35;
+  background: var(--surface-alt2);
 }
 
 .card-body {
