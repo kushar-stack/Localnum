@@ -157,7 +157,7 @@ function cardTemplate(article, index = 0) {
     : "";
 
   return `
-    <article class="card animate-in" style="animation-delay: ${(index % 12) * 0.08}s">
+    <article class="card animate-in" data-id="${article.id || ""}" style="animation-delay: ${(index % 12) * 0.08}s">
       <div class="card-top">
         <div class="meta">${meta}</div>
       </div>
@@ -176,7 +176,7 @@ function cardTemplate(article, index = 0) {
 
 function skeletonTemplate() {
   return `
-    <article class="card skeleton">
+    <article class="card skeleton" data-id="skeleton-${Math.random()}">
       <div class="line" style="width: 40%"></div>
       <div class="line" style="height: 20px; width: 90%"></div>
       <div class="line" style="width: 80%"></div>
@@ -360,15 +360,18 @@ function removeTopic(topic) {
 }
 
 function renderNews(articles, replace = false) {
-  const html = articles.map((a, i) => cardTemplate(a, i)).join("");
   if (replace) {
+    const html = articles.map((a, i) => cardTemplate(a, i)).join("");
     elements.news.innerHTML = html;
   } else {
-    // For infinite scroll, we filter out duplicates by checking existing URLs
-    const currentUrls = new Set([...elements.news.querySelectorAll("a[href]")].map(a => a.href));
-    const newArticles = articles.filter(a => !currentUrls.has(a.url));
-    const newHtml = newArticles.map((a, i) => cardTemplate(a, i + currentUrls.size)).join("");
-    elements.news.insertAdjacentHTML("beforeend", newHtml);
+    // For infinite scroll, we filter out duplicates by checking existing data-ids
+    const existingIds = new Set([...elements.news.querySelectorAll("article[data-id]")].map(el => el.dataset.id));
+    const newArticles = articles.filter(a => a.id && !existingIds.has(a.id));
+    
+    if (newArticles.length > 0) {
+      const newHtml = newArticles.map((a, i) => cardTemplate(a, i + existingIds.size)).join("");
+      elements.news.insertAdjacentHTML("beforeend", newHtml);
+    }
   }
 }
 

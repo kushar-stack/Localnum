@@ -79,6 +79,7 @@ export function clusterArticles(articles) {
     if (!map.has(key)) {
       map.set(key, {
         ...article,
+        id: key,
         sources: new Set([article.source?.name].filter(Boolean)),
         firstPublishedAt: article.publishedAt,
         lastPublishedAt: article.publishedAt,
