@@ -17,6 +17,7 @@ const elements = {
   modeHeadlines: document.getElementById("modeHeadlines"),
   modeSearch: document.getElementById("modeSearch"),
   categoryChips: document.getElementById("categoryChips"),
+  countryChips: document.getElementById("countryChips"),
   briefing: document.getElementById("briefing"),
   range: document.getElementById("range"),
   exact: document.getElementById("exact"),
@@ -234,8 +235,8 @@ function cardTemplate(article, index = 0) {
 
   const fallbackEmoji = thumbnailFallbacks[state.category] || catTag?.emoji || "📰";
 
-  // CSS layer approach: fallback div always sits behind; onerror just hides the img.
-  // This avoids the innerHTML + nested-quote escaping bug that rendered '" />' as visible text.
+  // Fix: Solid background color + specific display logic to prevent "newspaper icon" bleed-through.
+  // We hide the fallback if the image exists, and only reveal it if image errors out.
   const thumbImg = article.urlToImage
     ? `<img
         class="article-thumb"
@@ -243,16 +244,22 @@ function cardTemplate(article, index = 0) {
         alt=""
         width="600" height="190"
         loading="${index < 3 ? "eager" : "lazy"}"
-        onerror="this.style.display='none'"
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+        style="background: var(--surface-alt2)"
       />`
     : "";
 
   const thumbHtml = `
     <div class="article-thumb-wrap">
-      <div class="thumb-fallback" aria-hidden="true">${fallbackEmoji}</div>
       ${thumbImg}
+      <div class="thumb-fallback" style="${article.urlToImage ? 'display:none' : 'display:flex'}" aria-hidden="true">${fallbackEmoji}</div>
       ${catTagHtml}
     </div>`;
+
+  // AI Pulse Sentiment (Placeholder logic for Phase 6)
+  const sentiment = Math.random() > 0.5 ? "Bullish" : "Bearish";
+  const sentimentClass = sentiment.toLowerCase();
+  const pulseHtml = `<div class="ai-pulse ${sentimentClass}">✦ AI Pulse: ${sentiment}</div>`;
 
   // Why it matters
   const whyHtml = safeWhy
@@ -279,8 +286,13 @@ function cardTemplate(article, index = 0) {
       </button>`
     : "";
 
+    const credBadge = credibility !== "Reported" 
+      ? `<span class="cred-badge ${credibility}">${credibility}</span>`
+      : `<span class="cred-badge verified">✓ Verified Source</span>`;
+
   return `
     <article class="card animate-in" data-id="${article.id || ""}" style="animation-delay: ${(index % 12) * 0.07}s">
+      ${pulseHtml}
       ${thumbHtml}
       <div class="card-body">
         <div class="card-top">
@@ -814,7 +826,12 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
 
   if (activeMode === "search") {
     const topicQuery = state.myBrief ? state.topics.join(" OR ") : "";
-    const combinedQuery = [topicQuery, state.query].filter(Boolean).join(" OR ");
+    
+    // Add country name to query for Better Regional Relevance in search mode
+    const countryNames = { in: "India", us: "USA", gb: "UK", ca: "Canada", au: "Australia" };
+    const countryContext = state.country !== "all" ? countryNames[state.country] : "";
+    
+    const combinedQuery = [topicQuery, state.query, countryContext].filter(Boolean).join(" OR ");
     if (!combinedQuery) {
       setStatus(state.myBrief ? "Add a topic to build your brief." : "Type a search term to explore global stories.");
       elements.news.innerHTML = "";
@@ -832,7 +849,7 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
           : new Date(Date.now() - 2592e6).toISOString()
     );
   } else {
-    if (elements.country) params.set("country", state.country);
+    if (elements.country && state.country !== "all") params.set("country", state.country);
     if (state.category) params.set("category", state.category);
   }
 
@@ -1062,6 +1079,19 @@ function init() {
   });
 
   elements.modeSearch?.addEventListener("click", () => { setMode("search"); fetchNews({ reset: true }); });
+
+  elements.countryChips?.addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    const country = chip.dataset.country;
+    state.country = country;
+    localStorage.setItem("country", country);
+    if (elements.country) elements.country.value = country;
+    
+    // UI Update
+    elements.countryChips.querySelectorAll(".chip").forEach(c => c.classList.toggle("active", c === chip));
+    fetchNews({ reset: true });
+  });
 
   elements.categoryChips?.addEventListener("click", (e) => {
     const chip = e.target.closest(".chip");

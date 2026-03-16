@@ -928,14 +928,32 @@ body {
 /* Fallback: sits behind the img via absolute positioning.
    When img loads it covers this. When img fails (onerror hides it), this shows through. */
 .thumb-fallback {
-  position: absolute;
-  inset: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
   opacity: 0.35;
   background: var(--surface-alt2);
+}
+
+.ribbon-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ribbon-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  width: 65px;
+  flex-shrink: 0;
 }
 
 .card-body {
@@ -1431,9 +1449,37 @@ body {
 
 .footer-sep { opacity: 0.5; }
 
+.ai-pulse {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.ai-pulse.bullish { color: #4ade80; }
+.ai-pulse.bearish { color: #f87171; }
+
 .engaged {
   font-weight: 600;
   color: var(--accent);
+}
+
+.cred-badge.verified {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent);
 }
 
 /* ============================================================

@@ -71,6 +71,7 @@
       <div class="settings-section">
         <label class="settings-label" for="country">Country</label>
         <select id="country" aria-label="Country">
+          <option value="all">🌐 Global (All Sources)</option>
           <option value="us" selected>🇺🇸 United States</option>
           <option value="gb">🇬🇧 United Kingdom</option>
           <option value="ca">🇨🇦 Canada</option>
@@ -240,6 +241,12 @@
             <button type="submit" id="subscribeBtn" class="subscribe-btn">Get briefed →</button>
           </div>
           <div id="subscribeMsg" class="subscribe-msg hidden"></div>
+          <div class="hero-actions" style="margin-top:1rem; display:flex; gap:0.75rem;">
+            <button id="playAudio" class="ghost sm-btn" aria-label="Listen to brief">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              Listen to brief (60s)
+            </button>
+          </div>
           <p class="subscribe-note">Free · No spam · Unsubscribe anytime.</p>
         </form>
       </div>
@@ -258,20 +265,20 @@
       </div>
     </section>
 
-    <!-- Controls: Simplified — just search + categories -->
-    <section class="controls" aria-label="News controls">
-      <div class="search-bar-row">
-        <div class="search-wrap">
-          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="query" type="text" placeholder="Search topics — AI, markets, climate…" autocomplete="off" />
+      <div class="ribbon-row">
+        <label class="ribbon-label">Region</label>
+        <div class="chips" id="countryChips" role="listbox" aria-label="Region">
+          <button class="chip active" data-country="all">🌍 Global</button>
+          <button class="chip" data-country="in">🇮🇳 India</button>
+          <button class="chip" data-country="us">🇺🇸 US</button>
+          <button class="chip" data-country="gb">🇬🇧 UK</button>
+          <button class="chip" data-country="ca">🇨🇦 CA</button>
         </div>
-        <button id="refresh" class="refresh-btn" aria-label="Refresh feed">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          Refresh
-        </button>
       </div>
 
-      <div class="chips" id="categoryChips" role="listbox" aria-label="Category">
+      <div class="ribbon-row">
+        <label class="ribbon-label">Category</label>
+        <div class="chips" id="categoryChips" role="listbox" aria-label="Category">
         <button class="chip active" data-category="">All</button>
         <button class="chip" data-category="general">🌍 World</button>
         <button class="chip" data-category="business">💼 Business</button>
