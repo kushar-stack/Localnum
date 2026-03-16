@@ -736,6 +736,54 @@ function init() {
     fetchNews({ reset: true });
   });
 
+  elements.briefing.addEventListener("change", (e) => {
+    setBriefing(e.target.value);
+    fetchNews({ reset: true });
+  });
+
+  elements.range.addEventListener("change", (e) => {
+    setRange(e.target.value);
+    fetchNews({ reset: true });
+  });
+
+  elements.exact.addEventListener("change", (e) => {
+    setExact(e.target.checked);
+    fetchNews({ reset: true });
+  });
+
+  elements.qualityFilter.addEventListener("change", (e) => {
+    setQualityFilter(e.target.value);
+    // Quality filter is client-side, just re-render
+    const clustered = clusterArticles(cachedArticles);
+    const filtered = applyFilters(clustered);
+    renderNews(filtered, true);
+    currentBrief = filtered;
+    updateHeroStats(filtered.length);
+  });
+
+  elements.coverageFilter.addEventListener("change", (e) => {
+    setCoverageFilter(e.target.value);
+    // Coverage filter is client-side, just re-render
+    const clustered = clusterArticles(cachedArticles);
+    const filtered = applyFilters(clustered);
+    renderNews(filtered, true);
+    currentBrief = filtered;
+    updateHeroStats(filtered.length);
+  });
+
+  elements.sortBy.addEventListener("change", (e) => {
+    setSortBy(e.target.value);
+    fetchNews({ reset: true });
+  });
+
+  elements.conciseHeadlines.addEventListener("change", (e) => {
+    setConciseHeadlines(e.target.checked);
+    // Just re-render
+    const clustered = clusterArticles(cachedArticles);
+    const filtered = applyFilters(clustered);
+    renderNews(filtered, true);
+  });
+
   elements.modeHeadlines.addEventListener("click", () => {
     if (state.myBrief) setMyBrief(false);
     setMode("headlines");
