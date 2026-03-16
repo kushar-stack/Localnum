@@ -870,13 +870,24 @@ function init() {
   loadEngagedTime();
   startEngagementTracking();
 
+  /* Temporarily disabling Service Worker to clear cache issues
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("./sw.js").catch(() => {});
     });
   }
+  */
 
   fetchNews({ reset: true });
 }
+
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+  const status = document.getElementById("status");
+  if (status) {
+    status.textContent = `Error: ${msg} in ${url} at line ${lineNo}`;
+    status.classList.add("show");
+  }
+  return false;
+};
 
 init();
