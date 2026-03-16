@@ -1,4 +1,4 @@
-﻿const NEWS_URL = "https://newsapi.org/v2";
+const NEWS_URL = "https://newsapi.org/v2";
 const OPENAI_URL = "https://api.openai.com/v1/responses";
 const MAX_PAGE_SIZE = 50;
 const MAX_PAGE = 10;
@@ -174,9 +174,21 @@ export default async function handler(request, response) {
       params.set("from", now.toISOString());
     }
   } else {
-    params.set("country", String(country).slice(0, 5));
+    // If country is 'all', 'global', or empty, we don't set the country param.
+    // NewsAPI top-headlines requires at least country, category, or sources.
+    const isGlobal = !country || country === "all" || country === "global";
+    
+    if (!isGlobal) {
+      params.set("country", String(country).slice(0, 5));
+    }
+
     if (category) {
       params.set("category", String(category).slice(0, 20));
+    } 
+    
+    // If still no parameter (Global + All categories), default to top global sources
+    if (isGlobal && !category) {
+      params.set("sources", "reuters,bbc-news,cnn,associated-press,the-wall-street-journal,bloomberg");
     }
   }
 
