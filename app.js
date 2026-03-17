@@ -72,6 +72,7 @@ const elements = {
   audioProgressBar: document.getElementById("audioProgressBar"),
   audioStop: document.getElementById("audioStop"),
   searchSignalBar: document.getElementById("searchSignalBar"),
+  themeToggle: document.getElementById("themeToggle"),
 };
 
 // ============================================================
@@ -519,8 +520,9 @@ async function fetchNews({ reset = false, force = false } = {}) {
     updateHeroStats(filtered.length);
     setLoadMoreVisible(data.totalResults > cachedArticles.length && !state.myBrief);
     if (reset && data.articles.length) writeCache(cachedArticles);
+    setStatus(null); // Clear status on success
   } catch (err) {
-    if (err.name !== "AbortError") setStatus("Fetch failed. Try again.");
+    if (err.name !== "AbortError") setStatus(err.message || "Fetch failed. Try again.");
   } finally { setLoading(false); }
 }
 
@@ -552,9 +554,9 @@ function init() {
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
     document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
   });
-  elements.settingsOpen?.addEventListener("click", () => { elements.settingsPanel?.classList.add("open"); elements.settingsOverlay?.classList.add("show"); });
-  elements.settingsClose?.addEventListener("click", () => { elements.settingsPanel?.classList.remove("open"); elements.settingsOverlay?.classList.remove("show"); });
-  elements.settingsOverlay?.addEventListener("click", () => { elements.settingsPanel?.classList.remove("open"); elements.settingsOverlay?.classList.remove("show"); });
+  elements.settingsOpen?.addEventListener("click", () => { elements.settingsPanel?.classList.add("open"); elements.settingsOverlay?.classList.add("open"); });
+  elements.settingsClose?.addEventListener("click", () => { elements.settingsPanel?.classList.remove("open"); elements.settingsOverlay?.classList.remove("open"); });
+  elements.settingsOverlay?.addEventListener("click", () => { elements.settingsPanel?.classList.remove("open"); elements.settingsOverlay?.classList.remove("open"); });
   
   elements.categoryChips?.addEventListener("click", (e) => {
     const chip = e.target.closest(".chip");
@@ -574,6 +576,7 @@ function init() {
     if (!chip) return;
     const country = chip.dataset.country;
     if (country) {
+      if (state.myBrief) setMyBrief(false); // Turn off My Brief to show country headlines
       state.country = country;
       localStorage.setItem("country", country);
       [...elements.countryChips.querySelectorAll(".chip")].forEach(c => c.classList.toggle("active", c.dataset.country === country));
