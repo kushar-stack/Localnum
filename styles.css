@@ -220,10 +220,10 @@ h1, h2, h3, h4, .headline {
 .hero {
   display: grid;
   grid-template-columns: 1fr 300px;
-  gap: 3rem;
+  gap: 2rem;
   align-items: center;
-  margin-bottom: 2.5rem;
-  padding: 3rem 0 2rem;
+  margin-bottom: 1.5rem;
+  padding: 2rem 0 1.5rem;
 }
 
 .hero-eyebrow {
@@ -828,6 +828,10 @@ h1, h2, h3, h4, .headline {
   align-items: center;
   gap: 0.6rem;
   font-size: 0.88rem;
+}
+
+.bento-grid:empty, .news-grid:empty {
+  display: none !important;
 }
 
 .sm-inline-btn {

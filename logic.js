@@ -59,8 +59,8 @@ function buildWhyFromDescription(description, title) {
   const forwardSentence = sentences.find((s) => forwardKeywords.test(s) && s.length >= 40 && s.length <= 200);
   if (forwardSentence) return clampText(forwardSentence, 200);
 
-  // Fallback: use second or third sentence (usually more context than the lede)
-  const candidate = sentences[1] || sentences[0];
+  const candidates = sentences.slice(1).filter(s => !s.includes(sentences[0]));
+  const candidate = candidates[0] || sentences[1] || sentences[0];
   return candidate ? clampText(candidate, 180) : null;
 }
 
