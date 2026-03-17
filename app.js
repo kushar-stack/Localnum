@@ -61,6 +61,7 @@ const elements = {
   pushPrompt: document.getElementById("pushPrompt"),
   pushAllow: document.getElementById("pushAllow"),
   pushDismiss: document.getElementById("pushDismiss"),
+  playAudio: document.getElementById("playAudio"),
 };
 
 // ============================================================
@@ -256,10 +257,10 @@ function cardTemplate(article, index = 0) {
       ${catTagHtml}
     </div>`;
 
-  // AI Pulse Sentiment (Placeholder logic for Phase 6)
+  // AI Sentiment (Placeholder logic)
   const sentiment = Math.random() > 0.5 ? "Bullish" : "Bearish";
   const sentimentClass = sentiment.toLowerCase();
-  const pulseHtml = `<div class="ai-pulse ${sentimentClass}">✦ AI Pulse: ${sentiment}</div>`;
+  const sentimentHtml = `<div class="ai-sentiment ${sentimentClass}">✦ AI Sentiment: ${sentiment}</div>`;
 
   // Why it matters
   const whyHtml = safeWhy
@@ -288,7 +289,7 @@ function cardTemplate(article, index = 0) {
 
   return `
     <article class="card animate-in" data-id="${article.id || ""}" style="animation-delay: ${(index % 12) * 0.07}s">
-      ${pulseHtml}
+      ${sentimentHtml}
       ${thumbHtml}
       <div class="card-body">
         <div class="card-top">
@@ -769,6 +770,32 @@ function downloadCalendarReminder() {
 }
 
 // ============================================================
+// AUDIO SUMMARY (SpeechSynthesis)
+// ============================================================
+function playAudioSummary() {
+  if (!("speechSynthesis" in window)) {
+    setStatus("Audio not supported in this browser.");
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+  const briefing = getBriefingConfig();
+  const items = (currentBrief || []).slice(0, 5);
+  if (!items.length) {
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance("No stories available to read."));
+    return;
+  }
+
+  window.speechSynthesis.speak(new SpeechSynthesisUtterance("Here is your Busy Brief for today."));
+  items.forEach((article, index) => {
+    const title = formatTitle(article.title, article.source?.name);
+    const summary = summarizeArticle(article);
+    const text = `Story ${index + 1}: ${title}. ${summary.bullets.join(". ")}. Why it matters: ${summary.why}.`;
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  });
+}
+
+// ============================================================
 // FALLBACK & PREFETCH
 // ============================================================
 async function fetchGlobalFallback() {
@@ -816,9 +843,9 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
 
   const briefing = getBriefingConfig();
   const activeMode = state.myBrief ? "search" : state.mode;
-  updateContext(activeMode);
-
   const params = new URLSearchParams({ page, pageSize: briefing.pageSize });
+  params.set("mode", activeMode);
+  updateContext(activeMode);
 
   if (activeMode === "search") {
     const topicQuery = state.myBrief ? state.topics.join(" OR ") : "";
@@ -826,12 +853,29 @@ async function fetchNews({ reset = false, fallbackAllowed = true, force = false 
     // Add country name to query for Better Regional Relevance in search mode
     const countryNames = { in: "India", us: "USA", gb: "UK", ca: "Canada", au: "Australia" };
     const countryContext = state.country !== "all" ? countryNames[state.country] : "";
-    
-    const combinedQuery = [topicQuery, state.query, countryContext].filter(Boolean).join(" OR ");
+
+    // Refined logic: If user search exists, make it a required term (AND instead of OR where possible)
+    let combinedQuery = "";
+    if (state.query) {
+      if (topicQuery) {
+        combinedQuery = `(${topicQuery}) AND (${state.query})`;
+      } else {
+        combinedQuery = state.query;
+      }
+    } else {
+      combinedQuery = topicQuery;
+    }
+
+    if (countryContext && combinedQuery) {
+      combinedQuery = `(${combinedQuery}) AND ${countryContext}`;
+    } else if (countryContext) {
+      combinedQuery = countryContext;
+    }
     if (!combinedQuery) {
       setStatus(state.myBrief ? "Add a topic to build your brief." : "Type a search term to explore global stories.");
       elements.news.innerHTML = "";
       setLoadMoreVisible(false);
+      setLoading(false); // Fix: Ensure loading state is reset
       return;
     }
     params.set("query", combinedQuery);
@@ -1137,6 +1181,7 @@ function init() {
 
   elements.downloadBrief?.addEventListener("click", downloadBrief);
   elements.calendarBrief?.addEventListener("click", downloadCalendarReminder);
+  elements.playAudio?.addEventListener("click", playAudioSummary);
 
   elements.resetFilters?.addEventListener("click", () => {
     setQualityFilter("all");
