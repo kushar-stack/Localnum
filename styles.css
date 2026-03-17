@@ -4,84 +4,78 @@
    DESIGN TOKENS
    ============================================================ */
 :root {
-  /* Backgrounds */
-  --bg: #f5f0e8;
-  --bg-top: #fdf8f0;
-  --bg-bottom: #ede7da;
-  --surface: #ffffff;
+  /* Neuro-Colors: High Contrast, Reduced Strain */
+  --bg: #f8f6f2; /* Soft cream */
+  --bg-top: #ffffff;
+  --bg-bottom: #f2ede4;
+  --surface: rgba(255, 255, 255, 0.75);
+  --surface-solid: #ffffff;
   --surface-alt: #faf7f2;
-  --surface-alt2: #f4f0e8;
+  
+  /* Text: High Trust Ink */
+  --ink: #051610;
+  --ink-2: #1a2f26;
+  --muted: #5e7068;
+  --line: rgba(5, 22, 16, 0.08);
 
-  /* Text */
-  --ink: #0c1a14;
-  --ink-2: #2d3e35;
-  --muted: #5b6e62;
-  --line: #e2d9cc;
+  /* Brand: Digital Emerald */
+  --accent: #059669;
+  --accent-mid: #047857;
+  --accent-light: #10b981;
+  --accent-soft: rgba(5, 150, 105, 0.06);
+  --accent-text: #064e3b;
 
-  /* Brand accent — professional forest green */
-  --accent: #115e4f;
-  --accent-mid: #0d4a3e;
-  --accent-light: #1a7a68;
-  --accent-soft: rgba(17, 94, 79, 0.08);
-  --accent-text: #115e4f;
+  /* Glassmorphism 2.0 Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --blur: 16px;
+  --glass-shadow: 0 8px 32px 0 rgba(0, 71, 51, 0.08);
 
-  /* Category colors */
-  --cat-world: #1d4ed8;
-  --cat-business: #7c3aed;
-  --cat-markets: #b45309;
-  --cat-tech: #0369a1;
-  --cat-ai: #6d28d9;
-  --cat-science: #065f46;
-  --cat-health: #be123c;
-  --cat-sports: #b45309;
-  --cat-culture: #9f1239;
-  --cat-politics: #1e3a5f;
+  /* Category colors - Refined */
+  --cat-world: #2563eb;
+  --cat-business: #8b5cf6;
+  --cat-markets: #d97706;
+  --cat-tech: #0284c7;
+  --cat-ai: #7c3aed;
+  --cat-science: #059669;
+  
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 12px 24px rgba(0, 40, 30, 0.06);
+  --shadow-lg: 0 24px 48px rgba(0, 40, 30, 0.1);
 
-  --chip-bg: #eee9e0;
-  --shadow-sm: 0 2px 8px rgba(13, 59, 46, 0.08);
-  --shadow-md: 0 8px 24px rgba(13, 59, 46, 0.10);
-  --shadow-lg: 0 20px 48px rgba(13, 59, 46, 0.12);
-
-  --notice-bg: #fff8e6;
-  --notice-border: #f3d5a0;
-  --notice-text: #7a4f1a;
-  --skeleton-bg: #e8e0d2;
-
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 22px;
-  --radius-pill: 999px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-pill: 100px;
 }
 
 /* Dark mode */
 :root[data-theme="dark"] {
-  --bg: #0a1510;
-  --bg-top: #0f1e16;
-  --bg-bottom: #060d09;
-  --surface: #142019;
-  --surface-alt: #0f1a13;
-  --surface-alt2: #1a2b20;
+  --bg: #020806; /* Onyx Forest */
+  --bg-top: #030c09;
+  --bg-bottom: #010504;
+  --surface: rgba(10, 25, 20, 0.7);
+  --surface-solid: #0a1914;
+  --surface-alt: #050e0a;
 
-  --ink: #eef5f0;
-  --ink-2: #b8d4c0;
-  --muted: #7da68a;
-  --line: #243b2c;
+  --ink: #e2efea;
+  --ink-2: #a8beb5;
+  --muted: #6b847a;
+  --line: rgba(255, 255, 255, 0.1);
 
-  --accent: #22c55e;
-  --accent-mid: #16a34a;
-  --accent-light: #4ade80;
-  --accent-soft: rgba(34, 197, 94, 0.15);
-  --accent-text: #bef264;
+  --accent: #10b981;
+  --accent-mid: #059669;
+  --accent-light: #34d399;
+  --accent-soft: rgba(16, 185, 129, 0.12);
+  --accent-text: #d1fae5;
 
-  --chip-bg: #1e3326;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.45);
+  --glass-bg: rgba(10, 25, 20, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
 
-  --notice-bg: rgba(245, 158, 11, 0.12);
-  --notice-border: rgba(245, 158, 11, 0.25);
-  --notice-text: #fbbf24;
-  --skeleton-bg: #1e3326;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 12px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.6);
 }
 
 /* ============================================================
@@ -97,8 +91,14 @@ body {
   font-size: 15px;
   line-height: 1.6;
   color: var(--ink);
-  background: radial-gradient(ellipse at top left, var(--bg-top) 0%, var(--bg) 50%, var(--bg-bottom) 100%);
+  background: var(--bg);
+  background-attachment: fixed;
   min-height: 100vh;
+}
+
+h1, h2, h3, h4, .headline {
+  font-family: "Newsreader", serif;
+  font-weight: 600;
 }
 
 /* ============================================================
@@ -107,12 +107,13 @@ body {
 .site-header {
   position: sticky;
   top: 0;
-  z-index: 50;
-  background: rgba(255,255,255,0.82);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--line);
+  z-index: 1000;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border-bottom: 1px solid var(--glass-border);
   padding: 0 1.5rem;
+  box-shadow: var(--glass-shadow);
 }
 
 :root[data-theme="dark"] .site-header {
@@ -869,16 +870,54 @@ body {
   max-width: 760px;
 }
 
+/* ============================================================
+   BENTO GRID (The Power Grid)
+   ============================================================ */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.bento-grid .card { height: 100%; }
+
+.bento-1 { grid-column: span 2; grid-row: span 2; }
+.bento-1 .article-thumb-wrap { height: 320px; }
+.bento-1 .card-title { font-size: 1.75rem; line-height: 1.1; }
+
+.bento-2 { grid-column: span 2; grid-row: span 1; display: flex; flex-direction: row !important; }
+.bento-2 .article-thumb-wrap { width: 40%; height: auto; }
+.bento-2 .card-body { padding: 1rem; }
+
+.bento-3 { grid-column: span 1; grid-row: span 1; }
+.bento-4 { grid-column: span 1; grid-row: span 1; }
+.bento-5 { grid-column: span 2; grid-row: span 1; background: var(--accent-soft); }
+
+@media (max-width: 900px) {
+  .bento-grid { grid-template-columns: 1fr 1fr; }
+  .bento-1, .bento-2, .bento-5 { grid-column: span 2; }
+  .bento-3, .bento-4 { grid-column: span 1; }
+}
+
+@media (max-width: 600px) {
+  .bento-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .bento-1, .bento-2, .bento-3, .bento-4, .bento-5 { grid-column: span 1; grid-row: auto; }
+  .bento-2 { flex-direction: column !important; }
+  .bento-2 .article-thumb-wrap { width: 100%; height: 180px; }
+}
+
 .card {
-  background: var(--surface);
+  background: var(--surface-solid);
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
+  position: relative;
 }
 
 .card:hover {
@@ -1266,6 +1305,90 @@ body {
 
 .push-icon { font-size: 1.4rem; flex-shrink: 0; }
 
+.user-stats {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  justify-content: center;
+}
+
+.streak-badge {
+  background: linear-gradient(135deg, #ff6b6b, #f06595);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 100px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+  animation: float 3s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.streak-badge.hidden { display: none !important; }
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.search-signal-bar {
+  position: absolute;
+  bottom: 0px;
+  left: 1rem;
+  right: 1rem;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s ease;
+  opacity: 0.5;
+}
+
+.search-wrap:focus-within .search-signal-bar {
+  display: block;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--surface-alt);
+  border: 1px dashed var(--glass-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  margin: 0;
+  color: var(--text-main);
+}
+
+.empty-state p {
+  color: var(--text-muted);
+  max-width: 400px;
+  margin: 0;
+  line-height: 1.6;
+}
+
 .push-text {
   flex: 1;
   display: flex;
@@ -1480,6 +1603,87 @@ body {
   background: var(--accent-soft);
   color: var(--accent);
   border: 1px solid var(--accent);
+}
+
+/* ============================================================
+   AUDIO HUB (The Command Center)
+   ============================================================ */
+.audio-hub {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  background: var(--surface-solid);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--blur));
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.audio-hub.active {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.audio-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.audio-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  transform: scale(1.1);
+}
+
+.audio-btn.primary {
+  background: var(--accent);
+  color: #fff;
+  width: 50px;
+  height: 50px;
+}
+
+.audio-status {
+  padding: 0 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.audio-progress {
+  width: 100px;
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.audio-progress-bar {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.1s linear;
 }
 
 /* ============================================================

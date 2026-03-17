@@ -118,7 +118,7 @@ async function summarizeArticles(articles, apiKey, model, summaryLimit) {
 }
 
 export default async function handler(request, response) {
-  const apiKey = process.env.NEWSAPI_KEY;
+  const apiKey = process.env.NEWSAPI_KEY || process.env.NEWS_API_KEY;
   if (!apiKey) {
     response.status(500).json({ error: "Missing NEWSAPI_KEY" });
     return;

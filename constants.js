@@ -1,9 +1,9 @@
 export const CACHE_TTL_MS = 5 * 60 * 1000;
 
 export const BRIEFING_MAP = {
-  quick: { label: "2-Min Brief", pageSize: 6, summaryLimit: 6 },
-  standard: { label: "Standard Brief", pageSize: 12, summaryLimit: 8 },
-  deep: { label: "Deep Dive", pageSize: 20, summaryLimit: 12 },
+  quick: { label: "2-Min Brief", pageSize: 12, summaryLimit: 8 },
+  standard: { label: "Standard Brief", pageSize: 24, summaryLimit: 12 },
+  deep: { label: "Deep Dive", pageSize: 40, summaryLimit: 20 },
 };
 
 export const credibilityMap = {

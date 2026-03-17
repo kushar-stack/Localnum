@@ -27,7 +27,7 @@
   <meta name="twitter:image" content="/og-image.png" />
 
   <!-- Theme & Fonts -->
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0d3b2e" />
 
@@ -253,8 +253,8 @@
       <div class="hero-right">
         <div class="hero-card" aria-live="polite">
           <div class="hero-card-label">Today's Brief</div>
-          <div class="hero-stat" id="storyCount">—</div>
-          <div class="hero-stat-sub">stories briefed</div>
+          <div class="hero-stat" id="storyCount">0</div>
+          <div class="hero-stat-sub">Signals distilled for you</div>
           <div class="hero-card-divider"></div>
           <div class="hero-card-meta" id="lastUpdated">Updated moments ago</div>
           <div class="hero-trust">
@@ -270,7 +270,10 @@
       <div class="search-bar-row">
         <div class="search-wrap">
           <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="query" placeholder="Search topics, companies, or people..." aria-label="Search" />
+          <div class="search-input-wrapper">
+            <input type="text" id="query" placeholder="Type a signal to explore..." aria-label="Search news" />
+            <div id="searchSignalBar" class="search-signal-bar"></div>
+          </div>
           <button id="refresh" class="refresh-btn" aria-label="Refresh news" title="Refresh">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
           </button>
@@ -308,7 +311,10 @@
         </div>
       </div>
 
-      <div id="hint" class="hint" aria-live="polite"></div>
+      <div class="user-stats">
+        <span id="signalStreak" class="streak-badge hidden">🔥 0 Day Streak</span>
+        <div id="readerCount" class="reader-count" title="Active readers right now">3,200+</div>
+      </div>
     </section>
 
     <section id="status" class="status" role="status" aria-live="polite"></section>
@@ -319,7 +325,11 @@
 
     <section id="context" class="context" aria-live="polite"></section>
 
-    <section id="news" class="news-grid" aria-label="Latest news"></section>
+    <!-- Bento Grid for high-signal stories -->
+    <section id="bentoGrid" class="bento-grid" aria-label="Top Stories"></section>
+
+    <!-- Standard Feed -->
+    <section id="news" class="news-grid" aria-label="Latest news feed"></section>
 
     <div class="load-more-wrap">
       <button id="loadMore" class="ghost load-more-btn">Load more stories</button>
@@ -342,6 +352,27 @@
     </div>
   </footer>
 
-  <script type="module" src="app.js?v=3"></script>
+  <!-- Audio Command Center (The Secret Formula: Convenience) -->
+  <div id="audioHub" class="audio-hub" role="region" aria-label="Audio Command Center">
+    <button id="audioPrev" class="audio-btn" aria-label="Previous story">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
+    </button>
+    <button id="audioPlayPause" class="audio-btn primary" aria-label="Play or Pause">
+      <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      <svg class="pause-icon hidden" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    </button>
+    <button id="audioNext" class="audio-btn" aria-label="Next story">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+    </button>
+    <div class="audio-status" id="audioStatus">Ready to brief</div>
+    <div class="audio-progress">
+      <div id="audioProgressBar" class="audio-progress-bar"></div>
+    </div>
+    <button id="audioStop" class="audio-btn" aria-label="Stop briefing">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+    </button>
+  </div>
+
+  <script type="module" src="app.js?v=4"></script>
 </body>
 </html>
