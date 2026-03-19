@@ -21,14 +21,14 @@ function pickBullets(sentences) {
 }
 
 // ============================================================
-// "WHY IT MATTERS" — forward-looking, not a restatement
+// "WHY IT MATTERS" - forward-looking, not a restatement
 // ============================================================
 const WHY_TEMPLATES = [
-  (title) => `This shift signals momentum in ${extractTopic(title)} — watch for follow-on moves from competitors and regulators.`,
+  (title) => `This shift signals momentum in ${extractTopic(title)} - watch for follow-on moves from competitors and regulators.`,
   (title) => `Executives and investors tracking ${extractTopic(title)} should note this as an early indicator of broader market repricing.`,
   (title) => `If you operate in or around ${extractTopic(title)}, this development could change the cost structure and competitive dynamics ahead.`,
-  (title) => `This marks a structural turning point for ${extractTopic(title)} — early movers typically capture disproportionate upside.`,
-  (title) => `The ripple effects on ${extractTopic(title)} could be significant; the next 30–60 days will clarify the full impact.`,
+  (title) => `This marks a structural turning point for ${extractTopic(title)} - early movers typically capture disproportionate upside.`,
+  (title) => `The ripple effects on ${extractTopic(title)} could be significant; the next 30-60 days will clarify the full impact.`,
 ];
 
 const WATCH_TEMPLATES = [
@@ -40,7 +40,7 @@ const WATCH_TEMPLATES = [
 
 function extractTopic(title) {
   if (!title) return "this sector";
-  // Extract the core subject — first 3-4 meaningful words
+  // Extract the core subject - first 3-4 meaningful words
   const words = cleanText(stripHtml(title))
     .replace(/\b(breaking|report|update|exclusive|just in|says|new|first|major|top)\b/gi, "")
     .split(/\s+/)
@@ -110,7 +110,7 @@ export function summarizeArticle(article) {
     }
   }
 
-  // 4. "Why it matters" — try to extract forward-looking insight, fall back to template
+// 4. "Why it matters" - try to extract forward-looking insight, fall back to template
   if (!why) {
     const extracted = buildWhyFromDescription(article.description || article.content, article.title);
     if (extracted && extracted.length >= 40) {
@@ -122,7 +122,7 @@ export function summarizeArticle(article) {
     }
   }
 
-  // 5. "What to watch" — forward-looking signal sentence
+// 5. "What to watch" - forward-looking signal sentence
   const titleSeed = article.title || "this development";
   const watchIdx = hashString(titleSeed + "watch") % WATCH_TEMPLATES.length;
   watch = WATCH_TEMPLATES[watchIdx](titleSeed);
@@ -139,7 +139,7 @@ function normalizeTitle(title) {
     .toLowerCase()
     .replace(/\s+/g, " ")
     .replace(/\b(breaking|news|update|exclusive|just in):?\s*/gi, "")
-    .replace(/\s*[-|–—]\s*[^-]+$/, "")
+    .replace(/\s*[-|]\s*[^-]+$/, "")
     .replace(/[^a-z0-9 ]/g, "")
     .trim();
 }

@@ -15,7 +15,7 @@ function clampNumber(value, min, max, fallback) {
 function stripTo(text, limit) {
   if (!text) return "";
   const clean = String(text).replace(/\s+/g, " ").trim();
-  return clean.length > limit ? `${clean.slice(0, limit)}…` : clean;
+  return clean.length > limit ? `${clean.slice(0, limit)}...` : clean;
 }
 
 function extractOutputText(responseJson) {
@@ -245,3 +245,4 @@ export default async function handler(request, response) {
     response.status(500).json({ error: "Unable to reach NewsAPI" });
   }
 }
+

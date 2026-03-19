@@ -34,7 +34,7 @@ export function stripHtml(text) {
 
 export function clampText(text, maxLength) {
   if (!text) return "";
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
 }
 
 export function sanitizeBullet(text) {
@@ -70,7 +70,7 @@ export function formatDateRange(first, last) {
   const firstText = formatDate(first);
   const lastText = formatDate(last);
   if (firstText === lastText) return lastText;
-  return `First ${firstText} · Updated ${lastText}`;
+  return `First ${firstText} | Updated ${lastText}`;
 }
 
 export function getCredibilityBadge(source) {

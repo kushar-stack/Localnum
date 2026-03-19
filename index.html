@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Primary SEO -->
-  <title>Busy Brief — AI News Summaries in Under 2 Minutes</title>
-  <meta name="description" content="Busy Brief delivers AI-curated news summaries across tech, markets, business, and world events — in under 2 minutes. Smart briefings for busy people." />
+  <title>Busy Brief - AI News Summaries in Under 2 Minutes</title>
+  <meta name="description" content="Busy Brief delivers AI-curated news summaries across tech, markets, business, and world events - in under 2 minutes. Smart briefings for busy people." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://localnum-8i1b4tdz5-kushalnsharma-3823s-projects.vercel.app/" />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Busy Brief — Signal, distilled." />
-  <meta property="og:description" content="AI-curated news in under 2 minutes. Top stories in tech, markets, business & world news — briefed daily." />
+  <meta property="og:title" content="Busy Brief - Signal, distilled." />
+  <meta property="og:description" content="AI-curated news in under 2 minutes. Top stories in tech, markets, business & world news - briefed daily." />
   <meta property="og:url" content="https://localnum-8i1b4tdz5-kushalnsharma-3823s-projects.vercel.app/" />
   <meta property="og:image" content="/og-image.png" />
   <meta property="og:image:width" content="1200" />
@@ -22,12 +22,12 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Busy Brief — Signal, distilled." />
+  <meta name="twitter:title" content="Busy Brief - Signal, distilled." />
   <meta name="twitter:description" content="AI-curated news briefings in under 2 minutes. Smart summaries for busy professionals." />
   <meta name="twitter:image" content="/og-image.png" />
 
   <!-- Theme & Fonts -->
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=5" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0d3b2e" />
 
@@ -71,21 +71,21 @@
       <div class="settings-section">
         <label class="settings-label" for="country">Country</label>
         <select id="country" aria-label="Country">
-          <option value="all">🌐 Global (All Sources)</option>
-          <option value="us" selected>🇺🇸 United States</option>
-          <option value="gb">🇬🇧 United Kingdom</option>
-          <option value="ca">🇨🇦 Canada</option>
-          <option value="au">🇦🇺 Australia</option>
-          <option value="in">🇮🇳 India</option>
+          <option value="all">Global (All Sources)</option>
+          <option value="us" selected>United States</option>
+          <option value="gb">United Kingdom</option>
+          <option value="ca">Canada</option>
+          <option value="au">Australia</option>
+          <option value="in">India</option>
         </select>
       </div>
 
       <div class="settings-section">
         <label class="settings-label" for="briefing">Briefing length</label>
         <select id="briefing" aria-label="Briefing length">
-          <option value="quick">⚡ 2-Min Brief</option>
-          <option value="standard" selected>📰 Standard Brief</option>
-          <option value="deep">🔎 Deep Dive</option>
+          <option value="quick">2-Min Brief</option>
+          <option value="standard" selected>Standard Brief</option>
+          <option value="deep">Deep Dive</option>
         </select>
       </div>
 
@@ -144,7 +144,7 @@
       </div>
 
       <div class="settings-section">
-        <label class="settings-label">My Brief — personal topics</label>
+        <label class="settings-label">My Brief - personal topics</label>
         <label class="toggle-row">
           <input id="myBrief" type="checkbox" />
           <span class="toggle-label">Enable My Brief</span>
@@ -159,8 +159,8 @@
       <div class="settings-section">
         <label class="settings-label">Export</label>
         <div class="settings-actions">
-          <button id="downloadBrief" class="ghost sm-btn">⬇ Download brief</button>
-          <button id="calendarBrief" class="ghost sm-btn">📅 Daily reminder</button>
+          <button id="downloadBrief" class="ghost sm-btn">Download brief</button>
+          <button id="calendarBrief" class="ghost sm-btn">Daily reminder</button>
         </div>
       </div>
 
@@ -184,7 +184,7 @@
         <input id="shareUrl" type="text" readonly class="share-input" />
         <div class="share-btns">
           <button id="copyShareUrl" class="share-action-btn">Copy link</button>
-          <a id="shareTwitter" href="#" target="_blank" rel="noopener" class="share-action-btn twitter-btn">Post on 𝕏</a>
+          <a id="shareTwitter" href="#" target="_blank" rel="noopener" class="share-action-btn twitter-btn">Post on X</a>
           <a id="shareWhatsapp" href="#" target="_blank" rel="noopener" class="share-action-btn wa-btn">WhatsApp</a>
         </div>
       </div>
@@ -193,10 +193,10 @@
 
   <!-- Push Notification Prompt -->
   <div id="pushPrompt" class="push-prompt hidden" role="alertdialog" aria-label="Subscribe to daily brief">
-    <div class="push-icon">🔔</div>
+    <div class="push-icon">Notify</div>
     <div class="push-text">
       <strong>Get your morning brief</strong>
-      <span>Daily at 7 AM — never miss a signal</span>
+      <span>Daily at 7 AM - never miss a signal</span>
     </div>
     <div class="push-actions">
       <button id="pushAllow" class="push-allow-btn">Turn on</button>
@@ -234,11 +234,11 @@
       <div class="hero-left">
         <p class="hero-eyebrow">For people who think in minutes, not hours.</p>
         <h1 class="hero-headline">The world's signal,<br>stripped of noise.</h1>
-        <p class="hero-sub">AI-briefed headlines — tech, markets, world, science — in under 2 minutes. Delivered daily, free.</p>
+        <p class="hero-sub">AI-briefed headlines - tech, markets, world, science - in under 2 minutes. Delivered daily, free.</p>
         <form id="subscribeForm" class="subscribe-form" novalidate>
           <div class="subscribe-row">
             <input id="emailInput" type="email" placeholder="your@email.com" autocomplete="email" required aria-label="Email address" />
-            <button type="submit" id="subscribeBtn" class="subscribe-btn">Get briefed →</button>
+            <button type="submit" id="subscribeBtn" class="subscribe-btn">Get briefed -></button>
           </div>
           <div id="subscribeMsg" class="subscribe-msg hidden"></div>
           <div class="hero-actions" style="margin-top:1rem; display:flex; gap:0.75rem;">
@@ -247,7 +247,7 @@
               Play daily summary
             </button>
           </div>
-          <p class="subscribe-note">Free · No spam · Unsubscribe anytime.</p>
+          <p class="subscribe-note">Free | No spam | Unsubscribe anytime.</p>
         </form>
       </div>
       <div class="hero-right">
@@ -259,7 +259,7 @@
           <div class="hero-card-meta" id="lastUpdated">Updated moments ago</div>
           <div class="hero-trust">
             <span class="trust-dot"></span>
-            <span>Verified sources · AI-enhanced</span>
+            <span>Verified sources | AI-enhanced</span>
           </div>
         </div>
       </div>
@@ -283,11 +283,11 @@
       <div class="ribbon-row">
         <label class="ribbon-label">Region</label>
         <div class="chips" id="countryChips" role="listbox" aria-label="Region">
-          <button class="chip active" data-country="all">🌍 Global</button>
-          <button class="chip" data-country="in">🇮🇳 India</button>
-          <button class="chip" data-country="us">🇺🇸 US</button>
-          <button class="chip" data-country="gb">🇬🇧 UK</button>
-          <button class="chip" data-country="ca">🇨🇦 CA</button>
+          <button class="chip active" data-country="all">Global</button>
+          <button class="chip" data-country="in">India</button>
+          <button class="chip" data-country="us">US</button>
+          <button class="chip" data-country="gb">UK</button>
+          <button class="chip" data-country="ca">CA</button>
         </div>
       </div>
 
@@ -295,26 +295,23 @@
         <label class="ribbon-label">Category</label>
         <div class="chips" id="categoryChips" role="listbox" aria-label="Category">
           <button class="chip active" data-category="">All</button>
-          <button class="chip" data-category="general">🌍 World</button>
-          <button class="chip" data-category="business">💼 Business</button>
-          <button class="chip" data-query="Markets">📈 Markets</button>
-          <button class="chip" data-category="technology">💻 Tech</button>
-          <button class="chip" data-query="AI">🤖 AI</button>
-          <button class="chip" data-category="science">🔬 Science</button>
-          <button class="chip" data-category="health">🏥 Health</button>
-          <button class="chip" data-category="sports">⚽ Sports</button>
-          <button class="chip" data-category="entertainment">🎬 Culture</button>
-          <button class="chip" data-query="Politics">🏛 Politics</button>
-          <button class="chip" data-query="Climate">🌿 Climate</button>
-          <button class="chip" data-query="Crypto">₿ Crypto</button>
-          <button class="chip" data-query="Space">🚀 Space</button>
+          <button class="chip" data-category="general">World</button>
+          <button class="chip" data-category="business">Business</button>
+          <button class="chip" data-query="Markets">Markets</button>
+          <button class="chip" data-category="technology">Tech</button>
+          <button class="chip" data-query="AI">AI</button>
+          <button class="chip" data-category="science">Science</button>
+          <button class="chip" data-category="health">Health</button>
+          <button class="chip" data-category="sports">Sports</button>
+          <button class="chip" data-category="entertainment">Culture</button>
+          <button class="chip" data-query="Politics">Politics</button>
+          <button class="chip" data-query="Climate">Climate</button>
+          <button class="chip" data-query="Crypto">Crypto</button>
+          <button class="chip" data-query="Space">Space</button>
         </div>
       </div>
 
-      <div class="user-stats">
-        <span id="signalStreak" class="streak-badge hidden">🔥 0 Day Streak</span>
-        <div id="readerCount" class="reader-count" title="Active readers right now">3,200+</div>
-      </div>
+
     </section>
 
     <section id="status" class="status" role="status" aria-live="polite"></section>
@@ -340,14 +337,10 @@
     <div class="footer-inner">
       <div class="footer-brand">
         <span class="footer-mark">BB</span>
-        <span><strong>Busy Brief</strong> — Signal, distilled.</span>
+        <span><strong>Busy Brief</strong> - Signal, distilled.</span>
       </div>
       <div class="footer-links">
-        <span id="engagedTime" class="engaged"></span>
-        <span class="footer-sep">·</span>
-        <span>Verified sources · AI-briefed daily</span>
-        <span class="footer-sep">·</span>
-        <span>© 2026 Busy Brief</span>
+        <span>Verified sources | AI-briefed daily | (c) 2026 Busy Brief</span>
       </div>
     </div>
   </footer>
@@ -373,6 +366,6 @@
     </button>
   </div>
 
-  <script type="module" src="app.js?v=4"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>
