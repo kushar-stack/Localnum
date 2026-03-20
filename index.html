@@ -3,369 +3,278 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- Primary SEO -->
-  <title>Busy Brief - AI News Summaries in Under 2 Minutes</title>
-  <meta name="description" content="Busy Brief delivers AI-curated news summaries across tech, markets, business, and world events - in under 2 minutes. Smart briefings for busy people." />
+  <title>Busy Brief - Reliable News in a Sharper Format</title>
+  <meta name="description" content="Busy Brief turns noisy headlines into a faster, cleaner, more reliable daily news brief." />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://localnum-8i1b4tdz5-kushalnsharma-3823s-projects.vercel.app/" />
-
-  <!-- Open Graph -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Busy Brief - Signal, distilled." />
-  <meta property="og:description" content="AI-curated news in under 2 minutes. Top stories in tech, markets, business & world news - briefed daily." />
-  <meta property="og:url" content="https://localnum-8i1b4tdz5-kushalnsharma-3823s-projects.vercel.app/" />
+  <meta property="og:title" content="Busy Brief - Reliable news, distilled." />
+  <meta property="og:description" content="Cross-checked news clusters, crisp summaries, and a faster reading experience." />
   <meta property="og:image" content="/og-image.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:site_name" content="Busy Brief" />
-
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Busy Brief - Signal, distilled." />
-  <meta name="twitter:description" content="AI-curated news briefings in under 2 minutes. Smart summaries for busy professionals." />
-  <meta name="twitter:image" content="/og-image.png" />
-
-  <!-- Theme & Fonts -->
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <meta name="twitter:title" content="Busy Brief - Reliable news, distilled." />
+  <meta name="twitter:description" content="Cross-checked news clusters, crisp summaries, and a faster reading experience." />
+  <link rel="stylesheet" href="styles.css?v=6" />
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0d3b2e" />
-
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "Busy Brief",
-    "url": "https://localnum-8i1b4tdz5-kushalnsharma-3823s-projects.vercel.app/",
-    "description": "AI-curated news summaries across tech, business, markets and world events.",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://localnum-8i1b4tdz5-kushalnsharma-3823s-projects.vercel.app/?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
-  }
-  </script>
+  <meta name="theme-color" content="#10261f" />
 </head>
 <body>
-
-  <!-- Settings Slide-in Panel -->
-  <div id="settingsOverlay" class="settings-overlay" aria-hidden="true"></div>
-  <aside id="settingsPanel" class="settings-panel" aria-label="Settings" aria-hidden="true">
-    <div class="settings-header">
-      <span class="settings-title">Settings</span>
-      <button id="settingsClose" class="icon-btn" aria-label="Close settings">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-
-    <div class="settings-body">
-      <div class="settings-section">
-        <label class="settings-label">Mode</label>
-        <div class="mode-toggle" role="group" aria-label="Mode">
-          <button class="mode-btn" data-mode="headlines" id="modeHeadlines">Headlines</button>
-          <button class="mode-btn" data-mode="search" id="modeSearch">Search</button>
-        </div>
-      </div>
-
-      <div class="settings-section">
-        <label class="settings-label" for="country">Country</label>
-        <select id="country" aria-label="Country">
-          <option value="all">Global (All Sources)</option>
-          <option value="us" selected>United States</option>
-          <option value="gb">United Kingdom</option>
-          <option value="ca">Canada</option>
-          <option value="au">Australia</option>
-          <option value="in">India</option>
-        </select>
-      </div>
-
-      <div class="settings-section">
-        <label class="settings-label" for="briefing">Briefing length</label>
-        <select id="briefing" aria-label="Briefing length">
-          <option value="quick">2-Min Brief</option>
-          <option value="standard" selected>Standard Brief</option>
-          <option value="deep">Deep Dive</option>
-        </select>
-      </div>
-
-      <div class="settings-section">
-        <label class="settings-label" for="range">Time range</label>
-        <select id="range" aria-label="Search range">
-          <option value="24h">Past 24 hours</option>
-          <option value="7d" selected>Past 7 days</option>
-          <option value="30d">Past 30 days</option>
-        </select>
-      </div>
-
-      <div class="settings-section">
-        <label class="settings-label" for="sortBy">Sort by</label>
-        <select id="sortBy" aria-label="Sort order">
-          <option value="publishedAt" selected>Latest first</option>
-          <option value="relevancy">Most relevant</option>
-          <option value="popularity">Most popular</option>
-        </select>
-      </div>
-
-      <div class="settings-section">
-        <label class="settings-label" for="qualityFilter">Source quality</label>
-        <select id="qualityFilter" aria-label="Source quality filter">
-          <option value="all" selected>All sources</option>
-          <option value="mid">High + Medium only</option>
-          <option value="high">High credibility only</option>
-        </select>
-      </div>
-
-      <div class="settings-section">
-        <label class="settings-label" for="coverageFilter">Coverage</label>
-        <select id="coverageFilter" aria-label="Coverage filter">
-          <option value="all" selected>All coverage</option>
-          <option value="multi">Multi-source stories only</option>
-        </select>
-      </div>
-
-      <div class="settings-section">
-        <label class="settings-label">View</label>
-        <div class="view-toggle" role="group" aria-label="View">
-          <button class="view-btn" data-view="cards" id="viewCards">Cards</button>
-          <button class="view-btn" data-view="list" id="viewList">List</button>
-        </div>
-      </div>
-
-      <div class="settings-section">
-        <label class="toggle-row">
-          <input id="exact" type="checkbox" />
-          <span class="toggle-label">Exact phrase match</span>
-        </label>
-        <label class="toggle-row" style="margin-top:0.6rem">
-          <input id="conciseHeadlines" type="checkbox" />
-          <span class="toggle-label">Concise headlines</span>
-        </label>
-      </div>
-
-      <div class="settings-section">
-        <label class="settings-label">My Brief - personal topics</label>
-        <label class="toggle-row">
-          <input id="myBrief" type="checkbox" />
-          <span class="toggle-label">Enable My Brief</span>
-        </label>
-        <div class="settings-row" style="margin-top:0.7rem">
-          <input id="topicInput" type="text" placeholder="Add topic (e.g. AI, fintech)" />
-          <button id="addTopic" class="sm-btn">Add</button>
-        </div>
-        <div id="topicList" class="topic-list" aria-label="Saved topics"></div>
-      </div>
-
-      <div class="settings-section">
-        <label class="settings-label">Export</label>
-        <div class="settings-actions">
-          <button id="downloadBrief" class="ghost sm-btn">Download brief</button>
-          <button id="calendarBrief" class="ghost sm-btn">Daily reminder</button>
-        </div>
-      </div>
-
-      <details class="disclosure-sm">
-        <summary>How Busy Brief works</summary>
-        <p>Headlines and sources come from NewsAPI. Summaries are AI-enhanced where available. Every card links to the original source for full verification.</p>
-      </details>
-    </div>
-  </aside>
-
-  <!-- Share Modal -->
-  <div id="shareModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Share article">
-    <div class="modal-box">
-      <div class="modal-header">
-        <span>Share this story</span>
-        <button id="shareClose" class="icon-btn" aria-label="Close share">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="modal-body">
-        <input id="shareUrl" type="text" readonly class="share-input" />
-        <div class="share-btns">
-          <button id="copyShareUrl" class="share-action-btn">Copy link</button>
-          <a id="shareTwitter" href="#" target="_blank" rel="noopener" class="share-action-btn twitter-btn">Post on X</a>
-          <a id="shareWhatsapp" href="#" target="_blank" rel="noopener" class="share-action-btn wa-btn">WhatsApp</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Push Notification Prompt -->
-  <div id="pushPrompt" class="push-prompt hidden" role="alertdialog" aria-label="Subscribe to daily brief">
-    <div class="push-icon">Notify</div>
-    <div class="push-text">
-      <strong>Get your morning brief</strong>
-      <span>Daily at 7 AM - never miss a signal</span>
-    </div>
-    <div class="push-actions">
-      <button id="pushAllow" class="push-allow-btn">Turn on</button>
-      <button id="pushDismiss" class="push-dismiss-btn">Not now</button>
-    </div>
-  </div>
+  <div class="page-glow page-glow-a"></div>
+  <div class="page-glow page-glow-b"></div>
 
   <header class="site-header">
     <div class="header-inner">
-      <div class="brand-lockup">
-        <a href="/" class="brand-link" aria-label="Busy Brief home">
-          <div class="brand-mark">BB</div>
-          <div class="brand-text">
-            <span class="brand-name">Busy Brief</span>
-            <span class="brand-tagline">Signal, distilled.</span>
-          </div>
-        </a>
-      </div>
+      <a href="/" class="brand-link" aria-label="Busy Brief home">
+        <span class="brand-mark">BB</span>
+        <span class="brand-stack">
+          <strong>Busy Brief</strong>
+          <span>Reliable news, distilled.</span>
+        </span>
+      </a>
       <div class="header-actions">
-        <button id="themeToggle" class="icon-btn" aria-label="Toggle dark mode" title="Toggle dark mode">
-          <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-          <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-        </button>
-        <button id="settingsOpen" class="icon-btn" aria-label="Open settings" title="Settings">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <button id="playAudio" class="header-pill" type="button">Listen</button>
+        <button id="downloadBrief" class="header-pill ghost" type="button">Download</button>
+        <button id="themeToggle" class="icon-btn" type="button" aria-label="Toggle theme">
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
         </button>
       </div>
     </div>
   </header>
 
-  <main class="content">
-
-    <!-- Hero: Subscribe CTA -->
-    <section class="hero" aria-label="Welcome to Busy Brief">
-      <div class="hero-left">
-        <p class="hero-eyebrow">For people who think in minutes, not hours.</p>
-        <h1 class="hero-headline">The world's signal,<br>stripped of noise.</h1>
-        <p class="hero-sub">AI-briefed headlines - tech, markets, world, science - in under 2 minutes. Delivered daily, free.</p>
-        <form id="subscribeForm" class="subscribe-form" novalidate>
-          <div class="subscribe-row">
-            <input id="emailInput" type="email" placeholder="your@email.com" autocomplete="email" required aria-label="Email address" />
-            <button type="submit" id="subscribeBtn" class="subscribe-btn">Get briefed -></button>
-          </div>
-          <div id="subscribeMsg" class="subscribe-msg hidden"></div>
-          <div class="hero-actions" style="margin-top:1rem; display:flex; gap:0.75rem;">
-            <button id="playAudio" class="ghost sm-btn" aria-label="Play daily summary">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-              Play daily summary
-            </button>
-          </div>
-          <p class="subscribe-note">Free | No spam | Unsubscribe anytime.</p>
-        </form>
-      </div>
-      <div class="hero-right">
-        <div class="hero-card" aria-live="polite">
-          <div class="hero-card-label">Today's Brief</div>
-          <div class="hero-stat" id="storyCount">0</div>
-          <div class="hero-stat-sub">Signals distilled for you</div>
-          <div class="hero-card-divider"></div>
-          <div class="hero-card-meta" id="lastUpdated">Updated moments ago</div>
-          <div class="hero-trust">
-            <span class="trust-dot"></span>
-            <span>Verified sources | AI-enhanced</span>
-          </div>
+  <main class="page-shell">
+    <section class="hero-shell">
+      <div class="hero-copy">
+        <span class="hero-kicker">Built for the fast, skeptical reader.</span>
+        <h1>The day&apos;s signal, reassembled for trust and speed.</h1>
+        <p>Busy Brief now prioritizes stronger feed reliability, better clustering, clearer filters, deeper article context, and a more modern reading flow on mobile and desktop.</p>
+        <div class="hero-actions">
+          <button id="calendarBrief" class="hero-action ghost" type="button">Add morning reminder</button>
+          <span class="hero-note">Fast briefing, clearer sourcing, fewer duplicates.</span>
         </div>
       </div>
+
+      <aside class="hero-panel">
+        <span class="panel-kicker">Live brief</span>
+        <div class="hero-stat" id="storyCount">0</div>
+        <h2 id="summaryHeadline">Preparing your next brief</h2>
+        <p id="summaryDescription">Busy Brief will summarize the current lens as soon as live coverage lands.</p>
+        <div class="hero-meta">
+          <span id="lastUpdated">Updated moments ago</span>
+          <span id="feedNote">Waiting for the first live response.</span>
+        </div>
+      </aside>
     </section>
 
-    <!-- Controls: Search + Ribbons -->
-    <section class="controls" aria-label="News controls">
-      <div class="search-bar-row">
-        <div class="search-wrap">
-          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <div class="search-input-wrapper">
-            <input type="text" id="query" placeholder="Type a signal to explore..." aria-label="Search news" />
-            <div id="searchSignalBar" class="search-signal-bar"></div>
-          </div>
-          <button id="refresh" class="refresh-btn" aria-label="Refresh news" title="Refresh">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          </button>
+    <section class="control-deck" aria-label="Discovery controls">
+      <div class="control-top">
+        <div class="mode-switch" role="group" aria-label="Brief mode">
+          <button id="modeHeadlines" class="mode-btn active" type="button">Headlines</button>
+          <button id="modeSearch" class="mode-btn" type="button">Search</button>
+        </div>
+
+        <div class="search-shell">
+          <label class="sr-only" for="query">Search news</label>
+          <input id="query" type="text" placeholder="Search a topic, company, market, or beat" />
+          <button id="refresh" type="button">Refresh</button>
         </div>
       </div>
 
-      <div class="ribbon-row">
-        <label class="ribbon-label">Region</label>
-        <div class="chips" id="countryChips" role="listbox" aria-label="Region">
-          <button class="chip active" data-country="all">Global</button>
-          <button class="chip" data-country="in">India</button>
-          <button class="chip" data-country="us">US</button>
-          <button class="chip" data-country="gb">UK</button>
-          <button class="chip" data-country="ca">CA</button>
-        </div>
+      <div class="control-grid">
+        <label class="field">
+          <span>Region</span>
+          <select id="country">
+            <option value="us">United States</option>
+            <option value="gb">United Kingdom</option>
+            <option value="ca">Canada</option>
+            <option value="au">Australia</option>
+            <option value="in">India</option>
+            <option value="all">Global</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Brief depth</span>
+          <select id="briefing">
+            <option value="quick">2-Min Brief</option>
+            <option value="standard">Standard Brief</option>
+            <option value="deep">Deep Dive</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Time range</span>
+          <select id="range">
+            <option value="24h">Past 24 hours</option>
+            <option value="7d">Past 7 days</option>
+            <option value="30d">Past 30 days</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Sort</span>
+          <select id="sortBy">
+            <option value="publishedAt">Latest first</option>
+            <option value="relevancy">Most relevant</option>
+            <option value="popularity">Most covered</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Source quality</span>
+          <select id="qualityFilter">
+            <option value="all">All sources</option>
+            <option value="mid">Established outlets</option>
+            <option value="high">High-trust only</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Coverage depth</span>
+          <select id="coverageFilter">
+            <option value="all">All stories</option>
+            <option value="multi">Multi-source only</option>
+          </select>
+        </label>
       </div>
 
-      <div class="ribbon-row">
-        <label class="ribbon-label">Category</label>
-        <div class="chips" id="categoryChips" role="listbox" aria-label="Category">
-          <button class="chip active" data-category="">All</button>
-          <button class="chip" data-category="general">World</button>
-          <button class="chip" data-category="business">Business</button>
-          <button class="chip" data-query="Markets">Markets</button>
-          <button class="chip" data-category="technology">Tech</button>
-          <button class="chip" data-query="AI">AI</button>
-          <button class="chip" data-category="science">Science</button>
-          <button class="chip" data-category="health">Health</button>
-          <button class="chip" data-category="sports">Sports</button>
-          <button class="chip" data-category="entertainment">Culture</button>
-          <button class="chip" data-query="Politics">Politics</button>
-          <button class="chip" data-query="Climate">Climate</button>
-          <button class="chip" data-query="Crypto">Crypto</button>
-          <button class="chip" data-query="Space">Space</button>
-        </div>
+      <div class="toggle-row">
+        <label class="toggle">
+          <input id="exact" type="checkbox" />
+          <span>Exact phrase</span>
+        </label>
+        <label class="toggle">
+          <input id="conciseHeadlines" type="checkbox" />
+          <span>Concise headlines</span>
+        </label>
+        <label class="toggle">
+          <input id="myBrief" type="checkbox" />
+          <span>My Brief</span>
+        </label>
       </div>
 
+      <div class="topic-row">
+        <label class="sr-only" for="topicInput">Add a saved topic</label>
+        <input id="topicInput" type="text" placeholder="Add a saved topic like AI, rates, chips, or climate" />
+        <button id="addTopic" type="button">Add topic</button>
+      </div>
 
+      <div id="topicList" class="topic-list" aria-label="Saved topics"></div>
+
+      <div id="quickSignals" class="quick-signals" aria-label="Quick signals">
+        <button class="signal-btn" type="button" data-query="AI regulation">AI regulation</button>
+        <button class="signal-btn" type="button" data-query="interest rates">Interest rates</button>
+        <button class="signal-btn" type="button" data-query="chip supply chain">Chip supply chain</button>
+        <button class="signal-btn" type="button" data-category="business">Business feed</button>
+        <button class="signal-btn" type="button" data-category="technology">Tech feed</button>
+        <button class="signal-btn" type="button" data-country="all">Global view</button>
+      </div>
+
+      <div id="categoryChips" class="category-row" aria-label="Categories">
+        <button class="chip active" type="button" data-category="">All</button>
+        <button class="chip" type="button" data-category="general">World</button>
+        <button class="chip" type="button" data-category="business">Business</button>
+        <button class="chip" type="button" data-category="technology">Tech</button>
+        <button class="chip" type="button" data-category="science">Science</button>
+        <button class="chip" type="button" data-category="health">Health</button>
+        <button class="chip" type="button" data-category="sports">Sports</button>
+        <button class="chip" type="button" data-category="entertainment">Culture</button>
+        <button class="chip" type="button" data-query="Politics">Politics</button>
+        <button class="chip" type="button" data-query="Climate">Climate</button>
+        <button class="chip" type="button" data-query="Markets">Markets</button>
+      </div>
+
+      <div id="activeFilters" class="active-filters"></div>
     </section>
 
     <section id="status" class="status" role="status" aria-live="polite"></section>
+
     <section id="filterNotice" class="notice hidden" role="status" aria-live="polite">
-      Filters removed all stories.
-      <button id="resetFilters" class="ghost sm-inline-btn">Reset filters</button>
+      <span id="filterNoticeText"></span>
+      <button id="resetFilters" class="ghost-btn" type="button">Reset filters</button>
     </section>
 
-    <section id="context" class="context" aria-live="polite"></section>
-
-    <!-- Bento Grid for high-signal stories -->
-    <section id="bentoGrid" class="bento-grid" aria-label="Top Stories"></section>
-
-    <!-- Standard Feed -->
-    <section id="news" class="news-grid" aria-label="Latest news feed"></section>
+    <section id="context" class="context"></section>
+    <section id="metricsGrid" class="metrics-grid"></section>
+    <section id="spotlightGrid" class="spotlight-grid"></section>
+    <section id="bentoGrid" class="bento-grid" aria-label="Top stories"></section>
+    <section id="news" class="news-grid" aria-label="News feed"></section>
 
     <div class="load-more-wrap">
-      <button id="loadMore" class="ghost load-more-btn">Load more stories</button>
+      <button id="loadMore" class="ghost-btn" type="button">Load more stories</button>
     </div>
   </main>
 
   <footer class="site-footer">
     <div class="footer-inner">
-      <div class="footer-brand">
-        <span class="footer-mark">BB</span>
-        <span><strong>Busy Brief</strong> - Signal, distilled.</span>
+      <div>
+        <strong>Busy Brief</strong>
+        <p>Built to feel calmer, more trustworthy, and more useful than a raw headline list.</p>
       </div>
-      <div class="footer-links">
-        <span>Verified sources | AI-briefed daily | (c) 2026 Busy Brief</span>
-      </div>
+      <div class="footer-copy">Cross-checked clusters, AI-backed summaries when available, and direct links to source reporting.</div>
     </div>
   </footer>
 
-  <!-- Audio Command Center (The Secret Formula: Convenience) -->
-  <div id="audioHub" class="audio-hub" role="region" aria-label="Audio Command Center">
-    <button id="audioPrev" class="audio-btn" aria-label="Previous story">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
-    </button>
-    <button id="audioPlayPause" class="audio-btn primary" aria-label="Play or Pause">
-      <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-      <svg class="pause-icon hidden" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-    </button>
-    <button id="audioNext" class="audio-btn" aria-label="Next story">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
-    </button>
-    <div class="audio-status" id="audioStatus">Ready to brief</div>
-    <div class="audio-progress">
-      <div id="audioProgressBar" class="audio-progress-bar"></div>
+  <aside id="articleModal" class="article-modal hidden" aria-hidden="true">
+    <div id="articleBackdrop" class="article-backdrop"></div>
+    <div class="article-sheet" role="dialog" aria-modal="true" aria-label="Story details">
+      <button id="articleClose" class="icon-btn article-close" type="button" aria-label="Close story">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <div class="article-kickers">
+        <span id="articleSummaryOrigin" class="detail-pill"></span>
+        <span id="articleTrust" class="detail-pill"></span>
+        <span id="articleCoverage" class="detail-pill"></span>
+      </div>
+      <h2 id="articleTitle"></h2>
+      <p id="articleMeta" class="article-meta"></p>
+      <img id="articleImage" class="article-image hidden" alt="" />
+
+      <div class="article-grid">
+        <section class="article-block">
+          <h3>What happened</h3>
+          <ul id="articleBullets"></ul>
+        </section>
+        <section class="article-block">
+          <h3>Why it matters</h3>
+          <p id="articleWhy"></p>
+        </section>
+        <section class="article-block">
+          <h3>What to watch</h3>
+          <p id="articleWatch"></p>
+        </section>
+        <section class="article-block">
+          <h3>Coverage</h3>
+          <div id="articleSources" class="source-list"></div>
+        </section>
+      </div>
+
+      <div class="article-actions">
+        <button id="articleShare" class="ghost-btn" type="button">Copy link</button>
+        <a id="articleLink" class="primary-link" href="#" target="_blank" rel="noopener">Read original reporting</a>
+      </div>
     </div>
-    <button id="audioStop" class="audio-btn" aria-label="Stop briefing">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+  </aside>
+
+  <div id="audioHub" class="audio-hub" aria-label="Audio brief">
+    <button id="audioPrev" class="audio-btn" type="button" aria-label="Previous story">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"></path></svg>
+    </button>
+    <button id="audioPlayPause" class="audio-btn primary" type="button" aria-label="Pause or resume audio">
+      <svg class="play-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+      <svg class="pause-icon hidden" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+    </button>
+    <button id="audioNext" class="audio-btn" type="button" aria-label="Next story">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"></path></svg>
+    </button>
+    <div class="audio-status">
+      <span id="audioStatus">Ready to brief</span>
+      <div class="audio-progress"><span id="audioProgressBar"></span></div>
+    </div>
+    <button id="audioStop" class="audio-btn" type="button" aria-label="Stop audio">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>
     </button>
   </div>
 
-  <script type="module" src="app.js?v=5"></script>
+  <script type="module" src="app.js?v=6"></script>
 </body>
 </html>

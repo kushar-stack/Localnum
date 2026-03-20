@@ -110,7 +110,7 @@ export function summarizeArticle(article) {
     }
   }
 
-// 4. "Why it matters" - try to extract forward-looking insight, fall back to template
+  // 4. "Why it matters" - try to extract forward-looking insight, fall back to template
   if (!why) {
     const extracted = buildWhyFromDescription(article.description || article.content, article.title);
     if (extracted && extracted.length >= 40) {
@@ -122,7 +122,7 @@ export function summarizeArticle(article) {
     }
   }
 
-// 5. "What to watch" - forward-looking signal sentence
+  // 5. "What to watch" - forward-looking signal sentence
   const titleSeed = article.title || "this development";
   const watchIdx = hashString(titleSeed + "watch") % WATCH_TEMPLATES.length;
   watch = WATCH_TEMPLATES[watchIdx](titleSeed);
@@ -133,6 +133,12 @@ export function summarizeArticle(article) {
 // ============================================================
 // TITLE NORMALIZATION
 // ============================================================
+const TITLE_STOP_WORDS = new Set([
+  "after", "amid", "and", "are", "for", "from", "into", "just", "more",
+  "news", "over", "says", "that", "than", "their", "there", "this",
+  "with", "your", "breaking", "update", "exclusive", "live", "report",
+]);
+
 function normalizeTitle(title) {
   if (!title) return "";
   return title
@@ -144,50 +150,104 @@ function normalizeTitle(title) {
     .trim();
 }
 
+function tokenizeTitle(title) {
+  return normalizeTitle(title)
+    .split(/\s+/)
+    .filter((token) => token.length > 2 && !TITLE_STOP_WORDS.has(token));
+}
+
+function titleOverlap(aTitle, bTitle) {
+  const aTokens = new Set(tokenizeTitle(aTitle));
+  const bTokens = new Set(tokenizeTitle(bTitle));
+  if (!aTokens.size || !bTokens.size) return 0;
+
+  let shared = 0;
+  for (const token of aTokens) {
+    if (bTokens.has(token)) shared += 1;
+  }
+
+  return shared / Math.max(Math.min(aTokens.size, bTokens.size), 1);
+}
+
+function isSameStory(existing, article) {
+  const exactLeft = normalizeTitle(existing.title || existing.url || "");
+  const exactRight = normalizeTitle(article.title || article.url || "");
+  if (!exactLeft || !exactRight) return false;
+  if (exactLeft === exactRight) return true;
+
+  const overlap = titleOverlap(existing.title || "", article.title || "");
+  if (overlap >= 0.78) return true;
+
+  const existingTime = new Date(existing.lastPublishedAt || existing.publishedAt || 0).getTime();
+  const nextTime = new Date(article.publishedAt || 0).getTime();
+  const gap = Math.abs(existingTime - nextTime);
+  return overlap >= 0.62 && gap <= 1000 * 60 * 60 * 48;
+}
+
+function toSourceMeta(article) {
+  return {
+    name: article.source?.name || "",
+    url: article.url || "",
+    publishedAt: article.publishedAt || "",
+  };
+}
+
 // ============================================================
 // CLUSTER ARTICLES (deduplication)
 // ============================================================
 export function clusterArticles(articles) {
-  const map = new Map();
+  const clusters = [];
 
-  for (const article of articles) {
+  const sorted = [...articles].sort(
+    (left, right) => new Date(right.publishedAt || 0) - new Date(left.publishedAt || 0)
+  );
+
+  for (const article of sorted) {
     const sourceName = article.source?.name?.toLowerCase();
     if (sourceName && blockedSources.has(sourceName)) continue;
 
-    const key = normalizeTitle(article.title || article.url || "");
-    if (!key) continue;
-
-    if (!map.has(key)) {
-      map.set(key, {
+    const existing = clusters.find((item) => isSameStory(item, article));
+    if (!existing) {
+      clusters.push({
         ...article,
-        id: key,
+        id: normalizeTitle(article.title || article.url || "") || article.url || String(Date.now()),
         sources: new Set([article.source?.name].filter(Boolean)),
+        sourceMeta: [toSourceMeta(article)],
+        articleCount: 1,
         firstPublishedAt: article.publishedAt,
         lastPublishedAt: article.publishedAt,
       });
-    } else {
-      const existing = map.get(key);
-      if (article.source?.name) existing.sources.add(article.source.name);
-      if (article.publishedAt) {
-        const published = new Date(article.publishedAt);
-        const first = new Date(existing.firstPublishedAt || article.publishedAt);
-        const last = new Date(existing.lastPublishedAt || article.publishedAt);
-        if (published < first) existing.firstPublishedAt = article.publishedAt;
-        if (published > last) {
-          existing.lastPublishedAt = article.publishedAt;
-          existing.url = article.url;
-          existing.title = article.title;
-          existing.description = article.description;
-          existing.content = article.content;
-          existing.summary = article.summary || existing.summary;
-        }
-      }
-      if (!existing.summary && article.summary) existing.summary = article.summary;
+      continue;
     }
+
+    if (article.source?.name) existing.sources.add(article.source.name);
+    existing.sourceMeta.push(toSourceMeta(article));
+    existing.articleCount += 1;
+
+    if (article.publishedAt) {
+      const published = new Date(article.publishedAt);
+      const first = new Date(existing.firstPublishedAt || article.publishedAt);
+      const last = new Date(existing.lastPublishedAt || article.publishedAt);
+      if (published < first) existing.firstPublishedAt = article.publishedAt;
+      if (published > last) {
+        existing.lastPublishedAt = article.publishedAt;
+        existing.url = article.url;
+        existing.title = article.title;
+        existing.description = article.description;
+        existing.content = article.content;
+        existing.summary = article.summary || existing.summary;
+      }
+    }
+
+    if (!existing.summary && article.summary) existing.summary = article.summary;
+    if (!existing.urlToImage && article.urlToImage) existing.urlToImage = article.urlToImage;
   }
 
-  return Array.from(map.values()).map((item) => ({
+  return clusters.map((item) => ({
     ...item,
     sources: Array.from(item.sources || []),
+    sourceMeta: (item.sourceMeta || [])
+      .filter((source) => source.name)
+      .sort((left, right) => new Date(right.publishedAt || 0) - new Date(left.publishedAt || 0)),
   }));
 }

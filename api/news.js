@@ -125,8 +125,9 @@ export default async function handler(request, response) {
   }
 
   const {
+    q,
     query,
-    country = "us",
+    country = "",
     pageSize = "12",
     page = "1",
     mode = "headlines",
@@ -152,7 +153,7 @@ export default async function handler(request, response) {
 
   if (mode === "search") {
     endpoint = `${NEWS_URL}/everything`;
-    const cleanedQuery = String(query || "").trim();
+    const cleanedQuery = String(query || q || "").trim();
     if (cleanedQuery) {
       const q = exact === "1" ? `"${cleanedQuery}"` : cleanedQuery;
       params.set("q", q.slice(0, 200));
