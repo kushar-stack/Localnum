@@ -9,7 +9,7 @@ import {
   setStatus,
 } from "./render.js";
 import { buildRequestSequence, fetchNews as apiFetchNews, buildSearchQuery } from "./api.js";
-import { cleanText, formatTitle } from "./utils.js";
+import { cleanText, getCredibilityBadge } from "./utils.js";
 import { writeCache, readCache } from "./state.js";
 
 export function syncUrl() {
@@ -23,18 +23,32 @@ export function syncUrl() {
   window.history.replaceState({}, "", url);
 }
 
+function getArticleCredibility(article) {
+  const sources = Array.isArray(article.sourceMeta) && article.sourceMeta.length
+    ? article.sourceMeta
+    : article.source?.name ? [{ name: article.source.name }] : [];
+  const levels = sources.map((s) => getCredibilityBadge(s.name || ""));
+  if (levels.includes("High")) return "High";
+  if (levels.includes("Medium")) return "Medium";
+  if (levels.includes("Low")) return "Low";
+  return "Reported";
+}
+
 export function applyFilters(articles) {
   let filtered = articles;
   if (state.coverageFilter === "multi") {
     filtered = filtered.filter((article) => {
-        const count = (Array.isArray(article.sourceMeta) && article.sourceMeta.length) || 1;
-        return count > 1;
+      const count = (Array.isArray(article.sourceMeta) && article.sourceMeta.length)
+        || (Array.isArray(article.sources) && article.sources.length) || 1;
+      return count > 1;
     });
   }
   if (state.qualityFilter !== "all") {
     filtered = filtered.filter((article) => {
-      // Basic credibility check here for speed, or import getArticleCredibility
-      return true; // Simplified for now, or import full logic
+      const credibility = getArticleCredibility(article);
+      return state.qualityFilter === "high"
+        ? credibility === "High"
+        : credibility === "High" || credibility === "Medium";
     });
   }
   return filtered;
