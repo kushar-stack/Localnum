@@ -8,6 +8,12 @@ const ASSETS = [
   "/utils.js",
   "/constants.js",
   "/db.js",
+  "/dom.js",
+  "/state.js",
+  "/api.js",
+  "/render.js",
+  "/events.js",
+  "/app_logic.js",
 ];
 
 // ============================================================

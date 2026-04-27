@@ -286,7 +286,7 @@ input:hover {
 }
 
 .hero-copy {
-  padding: 2rem;
+  padding: 2.5rem;
 }
 
 .hero-kicker,
@@ -345,10 +345,10 @@ input:hover {
 }
 
 .hero-panel {
-  padding: 1.6rem;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 0.95rem;
+  gap: 1.2rem;
 }
 
 .hero-stat {

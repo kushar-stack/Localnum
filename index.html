@@ -16,6 +16,20 @@
   <link rel="stylesheet" href="styles.css?v=6" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#10261f" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Busy Brief",
+    "url": "https://busybrief.news",
+    "description": "Cross-checked news clusters, crisp summaries, and a faster reading experience.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://busybrief.news/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
 </head>
 <body>
   <div class="page-glow page-glow-a"></div>
@@ -54,13 +68,11 @@
       </div>
 
       <aside class="hero-panel">
-        <span class="panel-kicker">Live brief</span>
         <div class="hero-stat" id="storyCount">0</div>
         <h2 id="summaryHeadline">Preparing your next brief</h2>
         <p id="summaryDescription">Busy Brief will summarize the current lens as soon as live coverage lands.</p>
         <div class="hero-meta">
           <span id="lastUpdated">Updated moments ago</span>
-          <span id="feedNote">Waiting for the first live response.</span>
         </div>
       </aside>
     </section>

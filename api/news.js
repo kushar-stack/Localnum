@@ -1,10 +1,10 @@
 const NEWS_URL = "https://newsapi.org/v2";
-const OPENAI_URL = "https://api.openai.com/v1/responses";
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const MAX_PAGE_SIZE = 50;
 const MAX_PAGE = 10;
 const DEFAULT_SUMMARY_LIMIT = 8;
 
-const SYSTEM_PROMPT = `You are a precise news editor. For each article, write exactly 3 concise bullet points and a single-sentence 'why it matters'. Be factual, neutral, and avoid speculation. If details are missing, say so briefly. Keep bullets under 22 words.`;
+const SYSTEM_PROMPT = `You are a precise news editor. For each article, write exactly 3 concise bullet points and a single-sentence 'why it matters'. Be factual, neutral, and avoid speculation. If details are missing, say so briefly. Keep bullets under 22 words. Your response MUST be valid JSON matching the requested schema.`;
 
 function clampNumber(value, min, max, fallback) {
   const num = Number(value);
@@ -16,18 +16,6 @@ function stripTo(text, limit) {
   if (!text) return "";
   const clean = String(text).replace(/\s+/g, " ").trim();
   return clean.length > limit ? `${clean.slice(0, limit)}...` : clean;
-}
-
-function extractOutputText(responseJson) {
-  if (responseJson?.output_text) return responseJson.output_text;
-  const output = responseJson?.output || [];
-  for (const item of output) {
-    const content = item?.content || [];
-    for (const part of content) {
-      if (part?.type === "output_text" && part.text) return part.text;
-    }
-  }
-  return "";
 }
 
 async function summarizeArticles(articles, apiKey, model, summaryLimit) {
@@ -42,77 +30,40 @@ async function summarizeArticles(articles, apiKey, model, summaryLimit) {
 
   const payload = {
     model,
-    input: [
+    messages: [
       {
         role: "system",
-        content: [{ type: "input_text", text: SYSTEM_PROMPT }],
+        content: SYSTEM_PROMPT,
       },
       {
         role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: `Summarize the following articles as JSON.\n\n${JSON.stringify(target)}`,
-          },
-        ],
+        content: `Summarize the following articles as JSON with a 'summaries' array containing {bullets: string[], why: string} for each story:\n\n${JSON.stringify(target)}`,
       },
     ],
-    text: {
-      format: {
-        type: "json_schema",
-        json_schema: {
-          name: "news_summaries",
-          schema: {
-            type: "object",
-            properties: {
-              summaries: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    bullets: {
-                      type: "array",
-                      items: { type: "string" },
-                      minItems: 3,
-                      maxItems: 3,
-                    },
-                    why: { type: "string" },
-                  },
-                  required: ["bullets", "why"],
-                },
-              },
-            },
-            required: ["summaries"],
-          },
-          strict: true,
-        },
-      },
-    },
+    response_format: { type: "json_object" },
     temperature: 0.3,
-    store: false,
   };
 
-  const response = await fetch(OPENAI_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    return [];
-  }
-
-  const data = await response.json();
-  const outputText = extractOutputText(data);
-  if (!outputText) return [];
-
   try {
+    const response = await fetch(OPENAI_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const outputText = data?.choices?.[0]?.message?.content;
+    if (!outputText) return [];
+
     const parsed = JSON.parse(outputText);
     return Array.isArray(parsed?.summaries) ? parsed.summaries : [];
   } catch (error) {
+    console.error("Summarization error:", error);
     return [];
   }
 }

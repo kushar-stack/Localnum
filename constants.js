@@ -1,3 +1,5 @@
+export const CACHE_KEY = "newsCacheV2";
+export const THEME_KEY = "theme";
 export const CACHE_TTL_MS = 5 * 60 * 1000;
 
 export const BRIEFING_MAP = {
@@ -59,3 +61,20 @@ export const blockedSources = new Set([
   "daily mail",
   "the sun",
 ]);
+
+export const categoryConfig = {
+  "": { label: "Top stories", accent: "var(--accent)" },
+  general: { label: "World", accent: "#2563eb" },
+  business: { label: "Business", accent: "#8b5cf6" },
+  technology: { label: "Tech", accent: "#0284c7" },
+  science: { label: "Science", accent: "#059669" },
+  health: { label: "Health", accent: "#be123c" },
+  sports: { label: "Sports", accent: "#b45309" },
+  entertainment: { label: "Culture", accent: "#9f1239" },
+  ai: { label: "AI", accent: "#7c3aed" },
+  markets: { label: "Markets", accent: "#d97706" },
+  politics: { label: "Politics", accent: "#1e3a5f" },
+  climate: { label: "Climate", accent: "#059669" },
+  crypto: { label: "Crypto", accent: "#b45309" },
+  space: { label: "Space", accent: "#4f46e5" },
+};
