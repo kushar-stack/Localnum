@@ -311,3 +311,21 @@ export function closeArticle() {
   }
   document.body.classList.remove("modal-open");
 }
+
+let revealObserver;
+export function refreshScrollReveal() {
+  if (!revealObserver) {
+    revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
+    );
+  }
+  document.querySelectorAll(".reveal:not(.visible)").forEach((el) => revealObserver.observe(el));
+}

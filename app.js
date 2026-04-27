@@ -1,26 +1,7 @@
 import { hydrateStateFromUrl, state } from "./state.js";
 import { initEvents } from "./events.js";
 import { fetchNews } from "./app_logic.js";
-import { applyTheme, renderTopics, renderActiveFilters } from "./render.js";
-
-// IntersectionObserver for scroll-reveal
-let revealObserver;
-export function refreshScrollReveal() {
-  if (!revealObserver) {
-    revealObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("visible");
-            revealObserver.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
-    );
-  }
-  document.querySelectorAll(".reveal:not(.visible)").forEach((el) => revealObserver.observe(el));
-}
+import { applyTheme, renderTopics, renderActiveFilters, refreshScrollReveal } from "./render.js";
 
 // Header scroll shadow
 function initHeaderScroll() {

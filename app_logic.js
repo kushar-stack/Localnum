@@ -7,11 +7,11 @@ import {
   renderMetrics,
   renderNews,
   setStatus,
+  refreshScrollReveal,
 } from "./render.js";
 import { buildRequestSequence, fetchNews as apiFetchNews, buildSearchQuery } from "./api.js";
 import { cleanText, getCredibilityBadge } from "./utils.js";
 import { writeCache, readCache } from "./state.js";
-import { refreshScrollReveal } from "./app.js";
 import { stopAudio } from "./audio_logic.js";
 
 export function syncUrl() {
