@@ -13,7 +13,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Busy Brief - Reliable news, distilled." />
   <meta name="twitter:description" content="Cross-checked news clusters, crisp summaries, and a faster reading experience." />
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=7" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#10261f" />
   <script type="application/ld+json">
@@ -58,21 +58,23 @@
   <main class="page-shell">
     <section class="hero-shell">
       <div class="hero-copy">
-        <span class="hero-kicker">Built for the fast, skeptical reader.</span>
-        <h1>The day&apos;s signal, reassembled for trust and speed.</h1>
-        <p>Busy Brief now prioritizes stronger feed reliability, better clustering, clearer filters, deeper article context, and a more modern reading flow on mobile and desktop.</p>
+        <span class="hero-kicker">Built for the fast, skeptical reader</span>
+        <h1>The news,<br><em>stripped bare</em>.</h1>
+        <p>Busy Brief clusters live headlines, cross-checks sources, and distils each story to its essential facts — so you finish the day's news in minutes, not hours.</p>
         <div class="hero-actions">
           <button id="calendarBrief" class="hero-action ghost" type="button">Add morning reminder</button>
-          <span class="hero-note">Fast briefing, clearer sourcing, fewer duplicates.</span>
+          <span class="hero-note">No account needed &middot; Works on any device</span>
         </div>
       </div>
 
       <aside class="hero-panel">
+        <span class="panel-kicker">Live brief</span>
         <div class="hero-stat" id="storyCount">0</div>
-        <h2 id="summaryHeadline">Preparing your next brief</h2>
-        <p id="summaryDescription">Busy Brief will summarize the current lens as soon as live coverage lands.</p>
+        <h2 id="summaryHeadline">Preparing your brief</h2>
+        <p id="summaryDescription">Live coverage landing shortly &mdash; Busy Brief will cluster and verify each story as it arrives.</p>
         <div class="hero-meta">
           <span id="lastUpdated">Updated moments ago</span>
+          <span id="feedNote"></span>
         </div>
       </aside>
     </section>
@@ -287,6 +289,6 @@
     </button>
   </div>
 
-  <script type="module" src="app.js?v=6"></script>
+  <script type="module" src="app.js?v=7"></script>
 </body>
 </html>

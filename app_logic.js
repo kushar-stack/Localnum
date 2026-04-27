@@ -11,6 +11,7 @@ import {
 import { buildRequestSequence, fetchNews as apiFetchNews, buildSearchQuery } from "./api.js";
 import { cleanText, getCredibilityBadge } from "./utils.js";
 import { writeCache, readCache } from "./state.js";
+import { refreshScrollReveal } from "./app.js";
 
 export function syncUrl() {
   const params = new URLSearchParams();
@@ -76,7 +77,19 @@ export async function fetchNews({ reset = false, force = false } = {}) {
   const cached = reset && !force ? await readCache() : null;
   if (reset && cached?.articles?.length) {
     appState.lastFeedNote = `${cached.note || "Showing your saved brief"} while the live feed refreshes.`;
-    renderCollection(applyFilters(clusterArticles(cached.articles)));
+    const clustered = clusterArticles(cached.articles);
+    const filtered = applyFilters(clustered);
+    renderCollection(filtered);
+  }
+
+  if (reset && !cached) {
+    if (elements.bentoGrid) {
+      elements.bentoGrid.innerHTML = [0, 1, 2].map((i) => skeletonCard(i)).join("");
+    }
+    if (elements.news) {
+      elements.news.innerHTML = [3, 4, 5, 6, 7, 8].map((i) => skeletonCard(i)).join("");
+    }
+    refreshScrollReveal();
   }
 
   appState.isLoading = true;
@@ -110,6 +123,10 @@ export async function fetchNews({ reset = false, force = false } = {}) {
     const clustered = clusterArticles(appState.rawArticles);
     const filtered = applyFilters(clustered);
     renderCollection(filtered);
+    
+    if (elements.loadMore) {
+      elements.loadMore.style.display = payload.articles.length >= 20 ? "block" : "none";
+    }
 
     await writeCache({ articles: appState.rawArticles, note: appState.lastFeedNote });
     setStatus("Live brief refreshed.", "success");
@@ -121,6 +138,22 @@ export async function fetchNews({ reset = false, force = false } = {}) {
   }
 }
 
+function skeletonCard(index = 0) {
+  const isBento = index < 3;
+  const card = `
+    <article class="story-card skeleton-card reveal" style="animation-delay:${(index % 9) * 0.05}s">
+      <div class="story-media shimmer"></div>
+      <div class="story-body">
+        <div class="line short shimmer"></div>
+        <div class="line title shimmer"></div>
+        <div class="line medium shimmer"></div>
+        <div class="line medium shimmer"></div>
+      </div>
+    </article>
+  `;
+  return isBento ? `<div class="bento-slot bento-${index + 1}">${card}</div>` : card;
+}
+
 export function renderCollection(articles) {
   appState.currentBrief = articles;
   appState.articleMap = new Map(articles.map(a => [a.id, a]));
@@ -128,4 +161,5 @@ export function renderCollection(articles) {
   renderActiveFilters();
   renderMetrics(articles);
   renderNews(articles);
+  refreshScrollReveal();
 }

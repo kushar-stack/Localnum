@@ -170,7 +170,7 @@ export function renderMetrics(articles) {
     { label: "Fast read", value: `${Math.max(2, totalRead)}`, note: "minutes for the top 8 stories" },
     { label: "AI-briefed", value: `${AIBacked}`, note: "stories with model-backed summaries" },
   ].map((metric) => `
-    <article class="metric-card">
+    <article class="metric-card reveal">
       <span class="metric-label">${escapeHtml(metric.label)}</span>
       <strong>${escapeHtml(metric.value)}</strong>
       <p>${escapeHtml(metric.note)}</p>
@@ -191,7 +191,7 @@ export function cardTemplate(article, index = 0) {
     : "";
 
   return `
-    <article class="story-card animate-in" data-id="${escapeHtml(article.id || "")}" style="--card-accent:${escapeHtml(accent)};animation-delay:${(index % 9) * 0.05}s">
+    <article class="story-card reveal" data-id="${escapeHtml(article.id || "")}" style="--card-accent:${escapeHtml(accent)};animation-delay:${(index % 9) * 0.05}s">
       <div class="story-media ${article.urlToImage ? "" : "fallback-only"}">
         ${imageHtml}
         <div class="story-media-fallback">${escapeHtml(getCategoryLabel(article.category || state.category || ""))}</div>
@@ -226,7 +226,7 @@ export function renderNews(articles) {
   if (!articles.length) {
     if (elements.news) {
       elements.news.innerHTML = `
-        <article class="empty-state">
+        <article class="empty-state reveal">
           <span class="empty-kicker">No live signal</span>
           <h3>No stories match this lens</h3>
           <p>Try a broader country, remove the coverage filter, or switch to a topic search.</p>
@@ -241,7 +241,7 @@ export function renderNews(articles) {
 
   if (elements.bentoGrid) {
     elements.bentoGrid.innerHTML = featured
-      .map((article, index) => `<div class="bento-slot bento-${index + 1}">${cardTemplate(article, index)}</div>`)
+      .map((article, index) => `<div class="bento-slot reveal bento-${index + 1}">${cardTemplate(article, index)}</div>`)
       .join("");
   }
 
