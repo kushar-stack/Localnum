@@ -27,6 +27,7 @@ export const appState = {
   currentBrief: [],
   articleMap: new Map(),
   lastFeedNote: "Pulling in the latest coverage.",
+  modalFocusHandler: null,
 };
 
 export const audioState = {
