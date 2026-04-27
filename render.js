@@ -227,9 +227,14 @@ export function renderNews(articles) {
     if (elements.news) {
       elements.news.innerHTML = `
         <article class="empty-state reveal">
-          <span class="empty-kicker">No live signal</span>
-          <h3>No stories match this lens</h3>
-          <p>Try a broader country, remove the coverage filter, or switch to a topic search.</p>
+          <div class="empty-icon">×</div>
+          <span class="empty-kicker">No signal matching this lens</span>
+          <h3>The brief is quiet</h3>
+          <p>Try clearing your filters or switching to global headlines.</p>
+          <div class="empty-actions">
+            <button class="header-pill ghost" data-empty-action="clear">Clear filters</button>
+            <button class="header-pill" data-empty-action="global">Global headlines</button>
+          </div>
         </article>
       `;
     }

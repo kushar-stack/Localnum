@@ -6,6 +6,15 @@ let currentUtterance = null;
 
 export function initAudio() {
   if (!synthesis) return;
+
+  // Synthesis voices are loaded asynchronously in many browsers
+  if (synthesis.onvoiceschanged !== undefined) {
+    synthesis.onvoiceschanged = () => {
+      // Warm up the voice cache
+      synthesis.getVoices();
+    };
+  }
+
   // Cleanup on page unload
   window.addEventListener("beforeunload", stopAudio);
 }

@@ -176,7 +176,7 @@ export default async function handler(request, response) {
     const articles = data.articles || [];
 
     if (summaries === "1" && process.env.OPENAI_API_KEY) {
-      const model = process.env.OPENAI_SUMMARY_MODEL || "gpt-4.1-mini";
+      const model = process.env.OPENAI_SUMMARY_MODEL || "gpt-4o-mini";
       const llmSummaries = await summarizeArticles(articles, process.env.OPENAI_API_KEY, model, safeSummaryLimit);
 
       if (llmSummaries.length) {

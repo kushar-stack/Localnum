@@ -12,6 +12,7 @@ import { buildRequestSequence, fetchNews as apiFetchNews, buildSearchQuery } fro
 import { cleanText, getCredibilityBadge } from "./utils.js";
 import { writeCache, readCache } from "./state.js";
 import { refreshScrollReveal } from "./app.js";
+import { stopAudio } from "./audio_logic.js";
 
 export function syncUrl() {
   const params = new URLSearchParams();
@@ -62,6 +63,7 @@ export async function fetchNews({ reset = false, force = false } = {}) {
     appState.page = 1;
     appState.rawArticles = [];
     if (appState.currentController) appState.currentController.abort();
+    stopAudio();
   }
 
   state.query = cleanText(elements.query?.value || "");
