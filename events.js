@@ -7,8 +7,21 @@ import {
   openArticle,
   closeArticle,
 } from "./render.js";
-import { fetchNews, syncUrl, renderCollection } from "./app_logic.js";
 import { cleanText } from "./utils.js";
+import { 
+  fetchNews, 
+  syncUrl, 
+  renderCollection, 
+  downloadBrief, 
+  setupReminder 
+} from "./app_logic.js";
+import { 
+  toggleAudio, 
+  prevAudio, 
+  nextAudio, 
+  stopAudio, 
+  initAudio 
+} from "./audio_logic.js";
 
 function setMode(mode) {
   state.mode = mode === "search" ? "search" : "headlines";
@@ -262,4 +275,16 @@ export function initEvents() {
     const button = event.target.closest("[data-open-article]");
     if (button?.dataset.openArticle) openArticle(button.dataset.openArticle);
   });
+
+  // Audio Hub
+  initAudio();
+  elements.playAudio?.addEventListener("click", toggleAudio);
+  elements.audioPlayPause?.addEventListener("click", toggleAudio);
+  elements.audioPrev?.addEventListener("click", prevAudio);
+  elements.audioNext?.addEventListener("click", nextAudio);
+  elements.audioStop?.addEventListener("click", stopAudio);
+
+  // Tools
+  elements.downloadBrief?.addEventListener("click", downloadBrief);
+  elements.calendarBrief?.addEventListener("click", setupReminder);
 }

@@ -1,9 +1,10 @@
-const CACHE_NAME = "busy-brief-v4";
+const CACHE_NAME = "busy-brief-v5";
 const ASSETS = [
   "/",
   "/index.html",
   "/styles.css",
   "/app.js",
+  "/audio_logic.js",
   "/logic.js",
   "/utils.js",
   "/constants.js",
@@ -14,6 +15,8 @@ const ASSETS = [
   "/render.js",
   "/events.js",
   "/app_logic.js",
+  "/favicon.ico",
+  "/og-image.png",
 ];
 
 // ============================================================

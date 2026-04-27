@@ -1432,3 +1432,100 @@ button:disabled, input:disabled, select:disabled {
   .metrics-grid { grid-template-columns: 1fr 1fr; }
   .search-shell { min-width: 0; }
 }
+.hidden {
+  display: none !important;
+}
+
+#audioHub {
+  position: fixed;
+  bottom: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(94vw, 500px);
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: 1rem;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  transition: bottom var(--dur-mid) var(--ease-spring), opacity var(--dur-mid);
+  opacity: 0;
+  pointer-events: none;
+}
+#audioHub.active {
+  bottom: 1.5rem;
+  opacity: 1;
+  pointer-events: all;
+}
+.audio-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.audio-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.audio-main {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex: 1;
+  overflow: hidden;
+}
+#audioStatus {
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+.audio-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.audio-btn {
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--r-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--dur-fast), transform var(--dur-fast);
+}
+.audio-btn:hover {
+  background: var(--line);
+}
+.audio-btn:active {
+  transform: scale(0.9);
+}
+.audio-btn.primary {
+  background: var(--brand);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+}
+.audio-btn.primary:hover {
+  background: var(--brand-dark);
+}
+.audio-progress-container {
+  height: 4px;
+  background: var(--line);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+#audioProgressBar {
+  height: 100%;
+  background: var(--amber);
+  width: 0%;
+  transition: width 0.3s linear;
+}
