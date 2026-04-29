@@ -2,6 +2,8 @@ export const elements = {
   query: document.getElementById("query"),
   country: document.getElementById("country"),
   refresh: document.getElementById("refresh"),
+  advancedFiltersToggle: document.getElementById("advancedFiltersToggle"),
+  advancedFilters: document.getElementById("advancedFilters"),
   status: document.getElementById("status"),
   news: document.getElementById("news"),
   loadMore: document.getElementById("loadMore"),

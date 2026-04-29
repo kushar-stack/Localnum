@@ -3,12 +3,15 @@ import { state, appState, persistState } from "./state.js";
 import { categoryConfig, THEME_KEY } from "./constants.js";
 import {
   escapeHtml,
+  escapeRegExp,
   formatDate,
   formatDateRange,
   getCredibilityBadge,
   clampText,
   stripHtml,
   cleanText,
+  sanitizeSummaryText,
+  toSafeExternalUrl,
 } from "./utils.js";
 import { summarizeArticle } from "./logic.js";
 
@@ -82,11 +85,17 @@ function formatTitle(title, source) {
   if (!title) return "Untitled";
   let cleaned = cleanText(stripHtml(title));
   if (source) {
-    const pattern = new RegExp(`\\s*[-|]\\s*${escapeHtml(source)}\\s*$`, "i");
+    const pattern = new RegExp(`\\s*[-|]\\s*${escapeRegExp(cleanText(stripHtml(source)))}\\s*$`, "i");
     cleaned = cleaned.replace(pattern, "");
   }
   if (state.conciseHeadlines) cleaned = cleaned.split(":")[0].split(" - ")[0].trim();
   return clampText(cleaned, 120) || "Untitled";
+}
+
+function buildSourceLink(url, label = "Read source", className = "primary-link") {
+  const safeUrl = toSafeExternalUrl(url);
+  if (!safeUrl) return "";
+  return `<a class="${className}" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
 }
 
 export function setStatus(message = "", tone = "neutral") {
@@ -98,6 +107,14 @@ export function setStatus(message = "", tone = "neutral") {
   }
   elements.status.textContent = message;
   elements.status.className = `status show ${tone}`;
+}
+
+export function renderAdvancedFilters() {
+  if (!elements.advancedFilters || !elements.advancedFiltersToggle) return;
+  const open = Boolean(state.advancedFiltersOpen);
+  elements.advancedFilters.classList.toggle("hidden", !open);
+  elements.advancedFiltersToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  elements.advancedFiltersToggle.textContent = open ? "Hide advanced filters" : "Advanced filters";
 }
 
 export function applyTheme(theme) {
@@ -181,6 +198,8 @@ export function renderMetrics(articles) {
 export function cardTemplate(article, index = 0) {
   const summary = summarizeArticle(article);
   const title = escapeHtml(formatTitle(article.title, article.source?.name));
+  const bullets = summary.bullets.filter(Boolean).slice(0, 3);
+  const why = sanitizeSummaryText(summary.why, 200) || "The downstream impact is still being assessed.";
   const meta = [
     article.source?.name || getArticleSources(article)[0]?.name || "News source",
     formatDateRange(article.firstPublishedAt, article.lastPublishedAt) || formatDate(article.publishedAt),
@@ -191,7 +210,7 @@ export function cardTemplate(article, index = 0) {
     : "";
 
   return `
-    <article class="story-card reveal" data-id="${escapeHtml(article.id || "")}" style="--card-accent:${escapeHtml(accent)};animation-delay:${(index % 9) * 0.05}s">
+    <article class="story-card reveal" data-id="${escapeHtml(article.id || "")}" data-open-article="${escapeHtml(article.id || "")}" style="--card-accent:${escapeHtml(accent)};animation-delay:${(index % 9) * 0.05}s">
       <div class="story-media ${article.urlToImage ? "" : "fallback-only"}">
         ${imageHtml}
         <div class="story-media-fallback">${escapeHtml(getCategoryLabel(article.category || state.category || ""))}</div>
@@ -204,9 +223,9 @@ export function cardTemplate(article, index = 0) {
         </div>
         <h3>${title}</h3>
         <ul class="story-bullets">
-          ${summary.bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}
+          ${bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}
         </ul>
-        <p class="story-why"><strong>Why it matters:</strong> ${escapeHtml(summary.why)}</p>
+        <p class="story-why"><strong>Why it matters:</strong> ${escapeHtml(why)}</p>
         <div class="story-footer">
           <div class="story-signals">
             <span class="signal-chip">${escapeHtml(getSummaryOrigin(article))}</span>
@@ -214,7 +233,7 @@ export function cardTemplate(article, index = 0) {
           </div>
           <div class="story-actions">
             <button class="ghost-btn" type="button" data-open-article="${escapeHtml(article.id || "")}">Open brief</button>
-            ${article.url ? `<a class="primary-link" href="${escapeHtml(article.url)}" target="_blank" rel="noopener">Read source</a>` : ""}
+            ${buildSourceLink(article.url)}
           </div>
         </div>
       </div>
@@ -265,11 +284,50 @@ export function openArticle(articleId) {
   if (elements.articleTrust) elements.articleTrust.textContent = getTrustLabel(article);
   if (elements.articleCoverage) elements.articleCoverage.textContent = getCoverageLabel(article);
   if (elements.articleTitle) elements.articleTitle.textContent = formatTitle(article.title, article.source?.name);
-  if (elements.articleBullets) {
-    elements.articleBullets.innerHTML = summary.bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("");
+  if (elements.articleMeta) {
+    elements.articleMeta.textContent = [
+      article.source?.name || sources[0]?.name || "News source",
+      formatDateRange(article.firstPublishedAt, article.lastPublishedAt) || formatDate(article.publishedAt),
+    ].filter(Boolean).join(" | ");
   }
-  if (elements.articleWhy) elements.articleWhy.textContent = summary.why;
-  if (elements.articleWatch) elements.articleWatch.textContent = summary.watch;
+  if (elements.articleImage) {
+    if (article.urlToImage) {
+      elements.articleImage.src = article.urlToImage;
+      elements.articleImage.classList.remove("hidden");
+    } else {
+      elements.articleImage.classList.add("hidden");
+    }
+  }
+  if (elements.articleBullets) {
+    const bullets = summary.bullets.filter(Boolean).slice(0, 3);
+    elements.articleBullets.innerHTML = bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("");
+  }
+  if (elements.articleWhy) {
+    elements.articleWhy.textContent = sanitizeSummaryText(summary.why, 200) || "The downstream impact is still being assessed.";
+  }
+  if (elements.articleWatch) {
+    elements.articleWatch.textContent = sanitizeSummaryText(summary.watch, 200) || "Watch for meaningful follow-on developments over the next few days.";
+  }
+  if (elements.articleSources) {
+    elements.articleSources.innerHTML = sources.map(source => `
+      <div class="source-item">
+        <div class="source-item-main">
+          <strong>${escapeHtml(source.name || "Unknown Source")}</strong>
+          ${source.publishedAt ? `<span>${formatDate(source.publishedAt)}</span>` : ""}
+        </div>
+        ${buildSourceLink(source.url, "View original →", "source-link")}
+      </div>
+    `).join("");
+  }
+  if (elements.articleLink) {
+    const safeUrl = toSafeExternalUrl(article.url);
+    elements.articleLink.href = safeUrl || "#";
+    elements.articleLink.style.display = safeUrl ? "inline-flex" : "none";
+    if (elements.articleShare) {
+      elements.articleShare.dataset.url = safeUrl || "";
+      elements.articleShare.disabled = !safeUrl;
+    }
+  }
   
   elements.articleModal.classList.remove("hidden");
   elements.articleModal.setAttribute("aria-hidden", "false");

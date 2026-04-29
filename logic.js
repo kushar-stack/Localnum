@@ -2,7 +2,7 @@
  * Article clustering and summarization logic.
  * Enhanced: sharper "Why it matters" + new "What to watch" forward-looking signal.
  */
-import { cleanText, stripHtml, clampText, sanitizeBullet, sentenceSplit } from "./utils.js";
+import { cleanText, stripHtml, clampText, sanitizeBullet, sanitizeSummaryText, sentenceSplit } from "./utils.js";
 import { blockedSources } from "./constants.js";
 
 // ============================================================
@@ -11,7 +11,7 @@ import { blockedSources } from "./constants.js";
 function pickBullets(sentences) {
   const bullets = [];
   for (const sentence of sentences) {
-    const clean = sentence.replace(/\s+/g, " ").trim();
+    const clean = sanitizeSummaryText(sentence, 180);
     if (clean.length >= 40 && clean.length <= 180) {
       bullets.push(clean);
     }
@@ -31,18 +31,44 @@ const WHY_TEMPLATES = [
   (title) => `The ripple effects on ${extractTopic(title)} could be significant; the next 30-60 days will clarify the full impact.`,
 ];
 
-const WATCH_TEMPLATES = [
-  (title) => `Watch for: follow-up announcements from key players in ${extractTopic(title)} over the coming week.`,
-  (title) => `What to track: regulatory or legislative responses to ${extractTopic(title)} in the next cycle.`,
-  (title) => `Signal to monitor: whether major institutions accelerate or pause activity in ${extractTopic(title)}.`,
-  (title) => `Key indicator: how market prices and public sentiment around ${extractTopic(title)} shift over the next 48 hours.`,
-];
+const WATCH_TEMPLATES = {
+  general: [
+    (t) => `Watch for: regulatory responses and public sentiment shifts around ${extractTopic(t)} in the coming weeks.`,
+    (t) => `What to track: how major institutional players adjust their strategy regarding ${extractTopic(t)}.`,
+  ],
+  technology: [
+    (t) => `Next signal: keep an eye on product roadmaps and platform policy changes following this ${extractTopic(t)} news.`,
+    (t) => `Monitor: developer activity and integration cycles for ${extractTopic(t)} over the next quarter.`,
+  ],
+  business: [
+    (t) => `Key indicator: watch for earnings call commentary and analyst upgrades linked to ${extractTopic(t)}.`,
+    (t) => `Market signal: how supply chains and pricing models around ${extractTopic(t)} react to this development.`,
+  ],
+  politics: [
+    (t) => `Political pulse: observe legislative follow-through and polling shifts in response to ${extractTopic(t)}.`,
+    (t) => `Strategic move: watch for coalition building or diplomatic pivots related to ${extractTopic(t)}.`,
+  ],
+  science: [
+    (t) => `Scientific track: monitor peer-review outcomes and follow-up studies extending this ${extractTopic(t)} work.`,
+    (t) => `Impact: how this breakthrough in ${extractTopic(t)} influences funding and research priorities.`,
+  ],
+  default: [
+    (t) => `Key indicator: how market prices and public sentiment around ${extractTopic(t)} shift over the next 48 hours.`,
+    (t) => `Signal to monitor: whether this ${extractTopic(t)} news prompts a broader industry or policy recalibration.`,
+  ]
+};
+
+function getWatchTemplate(category, title, hash) {
+  const templates = WATCH_TEMPLATES[category] || WATCH_TEMPLATES.default;
+  const idx = hash % templates.length;
+  return templates[idx](title);
+}
 
 function extractTopic(title) {
   if (!title) return "this sector";
   // Extract the core subject - first 3-4 meaningful words
   const words = cleanText(stripHtml(title))
-    .replace(/\b(breaking|report|update|exclusive|just in|says|new|first|major|top)\b/gi, "")
+    .replace(/\b(breaking|report|update|exclusive|just in|says|new|first|major|top|why|what|how)\b/gi, "")
     .split(/\s+/)
     .filter((w) => w.length > 2)
     .slice(0, 4);
@@ -51,16 +77,18 @@ function extractTopic(title) {
 
 function buildWhyFromDescription(description, title) {
   if (!description) return null;
-  const cleaned = cleanText(stripHtml(description));
+  const cleaned = sanitizeSummaryText(description, 220);
+  if (!cleaned) return null;
 
   // Look for sentences with forward-looking keywords for a stronger "why"
-  const forwardKeywords = /\b(could|would|will|expect|impact|signal|mark|shift|change|affect|result|mean|lead|indicate|drive|push|force|risk)\b/i;
+  const forwardKeywords = /\b(could|would|will|expect|impact|signal|mark|shift|change|affect|result|mean|lead|indicate|drive|push|force|risk|likely|potential|future)\b/i;
   const sentences = sentenceSplit(cleaned);
   const forwardSentence = sentences.find((s) => forwardKeywords.test(s) && s.length >= 40 && s.length <= 200);
   if (forwardSentence) return clampText(forwardSentence, 200);
 
-  const candidates = sentences.slice(1).filter(s => !s.includes(sentences[0]));
-  const candidate = candidates[0] || sentences[1] || sentences[0];
+  // Avoid the first sentence if it's likely just the headline restated
+  const candidates = sentences.slice(1).filter(s => s.length > 40);
+  const candidate = candidates[0] || sentences[0];
   return candidate ? clampText(candidate, 180) : null;
 }
 
@@ -74,6 +102,10 @@ function hashString(str) {
   return Math.abs(hash);
 }
 
+function normalizeForComparison(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
+}
+
 // ============================================================
 // MAIN EXPORT: summarizeArticle
 // ============================================================
@@ -85,32 +117,10 @@ export function summarizeArticle(article) {
   // 1. Use pre-computed AI summary if available
   if (article.summary?.bullets?.length) {
     bullets = article.summary.bullets.map(sanitizeBullet).filter(Boolean);
-    why = sanitizeBullet(article.summary.why) || "";
+    why = sanitizeSummaryText(article.summary.why, 200) || "";
   }
 
-  // 2. Build bullets from text if needed
-  const sourceText = [article.description, article.content]
-    .map(cleanText)
-    .filter(Boolean)
-    .join(" ");
-
-  if (bullets.length < 3) {
-    const sentences = sentenceSplit(sourceText);
-    bullets = [...bullets, ...pickBullets(sentences)].slice(0, 3);
-  }
-
-  // 3. Fallback bullets
-  while (bullets.length < 3) {
-    if (bullets.length === 0) {
-      bullets.push(`Developing story covering ${extractTopic(article.title || "this topic")}.`);
-    } else if (bullets.length === 1) {
-      bullets.push(`Key details are emerging from ${article.source?.name || "multiple"} reports.`);
-    } else {
-      bullets.push("Full context and downstream impact are still becoming clear.");
-    }
-  }
-
-  // 4. "Why it matters" - try to extract forward-looking insight, fall back to template
+  // 2. Build Why first to ensure bullets don't duplicate it
   if (!why) {
     const extracted = buildWhyFromDescription(article.description || article.content, article.title);
     if (extracted && extracted.length >= 40) {
@@ -122,12 +132,55 @@ export function summarizeArticle(article) {
     }
   }
 
+  // 3. Build bullets from text, excluding the sentence used for 'why'
+  const sourceText = [article.description, article.content]
+    .map(cleanText)
+    .filter(Boolean)
+    .join(" ");
+
+  const normalizedWhy = normalizeForComparison(why);
+
+  if (bullets.length < 3) {
+    const sentences = sentenceSplit(sourceText).filter(s => {
+      const ns = normalizeForComparison(s);
+      return ns !== normalizedWhy && !normalizedWhy.includes(ns) && !ns.includes(normalizedWhy);
+    });
+    bullets = [...bullets, ...pickBullets(sentences)].slice(0, 3);
+  }
+
+  // 4. Final check for AI summaries to prevent rare cross-field repetition
+  if (bullets.length > 0 && normalizedWhy) {
+    bullets = bullets.filter(b => {
+      const nb = normalizeForComparison(b);
+      return nb !== normalizedWhy && !normalizedWhy.includes(nb) && !nb.includes(normalizedWhy);
+    });
+  }
+
+  // 5. Smart fallback bullets (avoiding generic filler)
+  const topic = extractTopic(article.title || "this topic");
+  if (bullets.length < 3) {
+    if (bullets.length === 0) {
+      bullets.push(`New reports detail the current situation surrounding ${topic}.`);
+      bullets.push(`Stakeholders are assessing the immediate implications of this move.`);
+      bullets.push(`Additional context is being gathered as the story develops.`);
+    } else if (bullets.length === 1) {
+      bullets.push(`Initial findings suggest a significant impact on ${topic} dynamics.`);
+      bullets.push(`Observers are noting how this aligns with broader trends in the field.`);
+    } else {
+      bullets.push(`Current evidence point to a lasting shift for ${topic} and its counterparts.`);
+    }
+  }
+
   // 5. "What to watch" - forward-looking signal sentence
   const titleSeed = article.title || "this development";
-  const watchIdx = hashString(titleSeed + "watch") % WATCH_TEMPLATES.length;
-  watch = WATCH_TEMPLATES[watchIdx](titleSeed);
+  const watchHash = hashString(titleSeed + "watch");
+  watch = getWatchTemplate(article.category, titleSeed, watchHash);
 
-  return { bullets, why, watch };
+  return {
+    bullets: bullets.filter(Boolean).slice(0, 3),
+    why: sanitizeSummaryText(why, 200) || "The broader implications are still coming into focus.",
+    watch: sanitizeSummaryText(watch, 200) || "Watch for meaningful follow-on developments over the next few days.",
+  };
 }
 
 // ============================================================

@@ -11,17 +11,95 @@
  *   3. Uncomment the relevant block below.
  */
 
+import crypto from "node:crypto";
+
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_MAX = 5;
+const rateLimitStore = new Map();
+
+function setCommonHeaders(res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+}
+
+function getAllowedOrigins() {
+  return (process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function applyCors(req, res) {
+  const origin = req.headers.origin || "";
+  const allowedOrigins = getAllowedOrigins();
+  if (!origin) return true;
+  // If allowedOrigins is not configured, fallback to denying instead of allowing all
+  if (allowedOrigins.length > 0 && allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    return true;
+  }
+  return false;
+}
+
+function getClientIp(req) {
+  const realIp = req.headers["x-real-ip"] || req.headers["x-vercel-forwarded-for"];
+  if (realIp && typeof realIp === "string") return realIp.split(",")[0].trim();
+
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.trim()) {
+    return forwarded.split(",")[0].trim();
+  }
+  return req.socket?.remoteAddress || "unknown";
+}
+
+function maskEmail(email) {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return "hidden";
+  const visible = local.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(1, local.length - visible.length))}@${domain}`;
+}
+
+function rateLimitExceeded(key) {
+  const now = Date.now();
+
+  if (Math.random() < 0.05) {
+    for (const [k, v] of rateLimitStore.entries()) {
+      if (now > v.resetAt) rateLimitStore.delete(k);
+    }
+  }
+
+  const current = rateLimitStore.get(key);
+  if (!current || now > current.resetAt) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  current.count += 1;
+  return current.count > RATE_LIMIT_MAX;
+}
+
 export default async function handler(req, res) {
-  // CORS headers for browser fetch
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  setCommonHeaders(res);
+  const originAllowed = applyCors(req, res);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (!originAllowed) return res.status(403).json({ error: "Origin not allowed." });
 
   try {
-    const { email } = req.body || {};
+    const { email, company = "", website = "" } = req.body || {};
+    const clientIp = getClientIp(req);
+
+    if (rateLimitExceeded(clientIp)) {
+      return res.status(429).json({ error: "Too many requests. Please wait before trying again." });
+    }
+
+    if (company || website) {
+      return res.status(200).json({ ok: true, message: "Subscribed successfully. Welcome to Busy Brief!" });
+    }
 
     // Validate
     if (!email || typeof email !== "string") {
@@ -70,7 +148,8 @@ export default async function handler(req, res) {
     // ----------------------------------------------------------------
     // DEFAULT: Log and respond success (no external service yet)
     // ----------------------------------------------------------------
-    console.log(`[Busy Brief] New subscriber: ${normalized} at ${new Date().toISOString()}`);
+    const fingerprint = crypto.createHash("sha256").update(normalized).digest("hex").slice(0, 12);
+    console.log(`[Busy Brief] New subscriber: ${maskEmail(normalized)} (${fingerprint}) at ${new Date().toISOString()}`);
 
     return res.status(200).json({
       ok: true,

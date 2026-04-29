@@ -6,6 +6,8 @@ import {
   renderActiveFilters,
   openArticle,
   closeArticle,
+  renderAdvancedFilters,
+  setStatus,
 } from "./render.js";
 import { cleanText } from "./utils.js";
 import { 
@@ -63,6 +65,12 @@ function setMyBrief(value) {
 }
 
 export function initEvents() {
+  elements.advancedFiltersToggle?.addEventListener("click", () => {
+    state.advancedFiltersOpen = !state.advancedFiltersOpen;
+    persistState();
+    renderAdvancedFilters();
+  });
+
   // Theme toggle
   elements.themeToggle?.addEventListener("click", () => applyTheme(state.theme === "dark" ? "light" : "dark"));
 
@@ -136,12 +144,14 @@ export function initEvents() {
   elements.exact?.addEventListener("change", (event) => {
     state.exact = event.target.checked;
     persistState();
+    setStatus(`Exact phrase ${event.target.checked ? "enabled" : "disabled"}.`, "neutral");
     fetchNews({ reset: true });
   });
 
   elements.conciseHeadlines?.addEventListener("change", (event) => {
     state.conciseHeadlines = event.target.checked;
     persistState();
+    setStatus(`Concise headlines ${event.target.checked ? "enabled" : "disabled"}.`, "neutral");
     // Re-render in-place without a network call
     if (typeof renderCollection === "function") {
       import("./app_logic.js").then(({ renderCollection: rc }) => {
@@ -152,6 +162,7 @@ export function initEvents() {
 
   elements.myBrief?.addEventListener("change", (event) => {
     setMyBrief(event.target.checked);
+    setStatus(`My Brief ${event.target.checked ? "enabled" : "disabled"}.`, "neutral");
     fetchNews({ reset: true });
   });
 
@@ -194,7 +205,9 @@ export function initEvents() {
     }
     // Update chip highlights
     elements.categoryChips.querySelectorAll(".chip").forEach((chip) => {
-      chip.classList.toggle("active", chip === button);
+      const isActive = chip === button;
+      chip.classList.toggle("active", isActive);
+      chip.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
     fetchNews({ reset: true });
   });
@@ -203,6 +216,9 @@ export function initEvents() {
   elements.quickSignals?.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-query], button[data-category], button[data-country]");
     if (!button) return;
+    elements.quickSignals.querySelectorAll("button").forEach((btn) => {
+      btn.setAttribute("aria-pressed", btn === button ? "true" : "false");
+    });
     if (button.dataset.query) {
       state.query = button.dataset.query;
       state.category = "";
@@ -248,6 +264,7 @@ export function initEvents() {
     }
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(url);
+      setStatus("Story link copied.", "success");
     }
   });
 
@@ -268,6 +285,9 @@ export function initEvents() {
       state.query = ""; state.category = ""; state.qualityFilter = "all"; state.coverageFilter = "all";
       state.exact = false; state.myBrief = false;
       persistState(); fetchNews({ reset: true, force: true });
+    }
+    if (btn.dataset.emptyAction === "retry") {
+      fetchNews({ reset: true, force: true });
     }
   });
 

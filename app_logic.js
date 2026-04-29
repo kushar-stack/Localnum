@@ -10,7 +10,7 @@ import {
   refreshScrollReveal,
 } from "./render.js";
 import { buildRequestSequence, fetchNews as apiFetchNews, buildSearchQuery } from "./api.js";
-import { cleanText, getCredibilityBadge } from "./utils.js";
+import { cleanText, getCredibilityBadge, escapeHtml } from "./utils.js";
 import { writeCache, readCache } from "./state.js";
 import { stopAudio } from "./audio_logic.js";
 
@@ -135,6 +135,22 @@ export async function fetchNews({ reset = false, force = false } = {}) {
   } catch (error) {
     if (error.name === "AbortError") return;
     setStatus(error.message || "Live feed failed to load.", "error");
+    if (reset) {
+      if (elements.bentoGrid) elements.bentoGrid.innerHTML = "";
+      if (elements.news) {
+        elements.news.innerHTML = `
+          <article class="empty-state reveal error-state">
+            <div class="empty-icon">⚠</div>
+            <span class="empty-kicker">Connection interrupted</span>
+            <h3>We couldn't pull the latest brief</h3>
+            <p>${escapeHtml(error.message || "Please check your network or try again shortly.")}</p>
+            <div class="empty-actions">
+              <button class="header-pill" data-empty-action="retry">Retry connection</button>
+            </div>
+          </article>
+        `;
+      }
+    }
   } finally {
     appState.isLoading = false;
   }

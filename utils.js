@@ -40,11 +40,36 @@ export function clampText(text, maxLength) {
 export function sanitizeBullet(text) {
   const cleaned = cleanText(stripHtml(text));
   if (!cleaned || !/[a-z0-9]/i.test(cleaned)) return "";
+  const lowSignalPattern =
+    /<\s*(ul|li|div|span)|a required part of this site couldnt load|disable any ad blockers|please check your connection|this may be due to a browser extension/i;
+  if (lowSignalPattern.test(cleaned) || cleaned.length < 20) return "";
   return clampText(cleaned, 180);
 }
 
 export function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function sanitizeSummaryText(text, maxLength = 220) {
+  const cleaned = cleanText(stripHtml(text));
+  if (!cleaned) return "";
+  const lowSignalPattern =
+    /<\s*(ul|li|div|span)|a required part of this site couldnt load|disable any ad blockers|please check your connection|this may be due to a browser extension/i;
+  if (lowSignalPattern.test(cleaned)) return "";
+  return clampText(cleaned, maxLength);
+}
+
+export function toSafeExternalUrl(value) {
+  if (!value) return "";
+  try {
+    const parsed = new URL(String(value).trim());
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.toString();
+    }
+    return "";
+  } catch {
+    return "";
+  }
 }
 
 export function sentenceSplit(text) {

@@ -1,7 +1,7 @@
 import { hydrateStateFromUrl, state } from "./state.js";
 import { initEvents } from "./events.js";
 import { fetchNews } from "./app_logic.js";
-import { applyTheme, renderTopics, renderActiveFilters, refreshScrollReveal } from "./render.js";
+import { applyTheme, renderTopics, renderActiveFilters, renderAdvancedFilters, refreshScrollReveal } from "./render.js";
 
 // Header scroll shadow
 function initHeaderScroll() {
@@ -22,6 +22,7 @@ function init() {
   hydrateStateFromUrl();
   renderTopics();
   renderActiveFilters();
+  renderAdvancedFilters();
   applyTheme(state.theme);
   
   // Header behavior

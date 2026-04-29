@@ -16,6 +16,7 @@ export const state = {
   qualityFilter: localStorage.getItem("qualityFilter") || "all",
   coverageFilter: localStorage.getItem("coverageFilter") || "all",
   sortBy: localStorage.getItem("sortBy") || "publishedAt",
+  advancedFiltersOpen: localStorage.getItem("advancedFiltersOpen") === "true",
   theme: localStorage.getItem(THEME_KEY) || "light",
 };
 
@@ -51,6 +52,7 @@ export function persistState() {
   localStorage.setItem("qualityFilter", state.qualityFilter);
   localStorage.setItem("coverageFilter", state.coverageFilter);
   localStorage.setItem("sortBy", state.sortBy);
+  localStorage.setItem("advancedFiltersOpen", state.advancedFiltersOpen ? "true" : "false");
   localStorage.setItem(THEME_KEY, state.theme);
 }
 

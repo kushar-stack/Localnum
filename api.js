@@ -36,7 +36,7 @@ export function buildRequestSequence() {
     page: String(appState.page),
     pageSize: String(briefing.pageSize),
     summaries: "1",
-    summary_limit: String(briefing.summaryLimit),
+    summary_limit: String(Math.min(briefing.summaryLimit, 12)),
     sortBy: state.sortBy,
   };
   const candidates = [];
