@@ -1,5 +1,5 @@
 import { elements } from "./dom.js";
-import { state, persistState } from "./state.js";
+import { state, appState, persistState } from "./state.js";
 import {
   applyTheme,
   renderTopics,
@@ -163,12 +163,7 @@ export function initEvents() {
     state.conciseHeadlines = event.target.checked;
     persistState();
     setStatus(`Concise headlines ${event.target.checked ? "enabled" : "disabled"}.`, "neutral");
-    // Re-render in-place without a network call
-    if (typeof renderCollection === "function") {
-      import("./app_logic.js").then(({ renderCollection: rc }) => {
-        const { appState } = import("./state.js").then(({ appState: s }) => rc(s.currentBrief));
-      }).catch(() => {});
-    }
+    renderCollection(appState.currentBrief);
   });
 
   elements.myBrief?.addEventListener("change", (event) => {
@@ -260,9 +255,6 @@ export function initEvents() {
     fetchNews({ reset: true });
   });
 
-  // Load more
-  elements.loadMore?.addEventListener("click", () => fetchNews({ reset: false }));
-
   // Article modal
   elements.articleClose?.addEventListener("click", closeArticle);
   elements.articleBackdrop?.addEventListener("click", closeArticle);
@@ -303,6 +295,11 @@ export function initEvents() {
   });
 
   elements.bentoGrid?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-open-article]");
+    if (button?.dataset.openArticle) openArticle(button.dataset.openArticle);
+  });
+
+  elements.spotlightGrid?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-open-article]");
     if (button?.dataset.openArticle) openArticle(button.dataset.openArticle);
   });
@@ -364,11 +361,14 @@ export function initEvents() {
           })
         });
         const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Article chat is unavailable right now.");
+        }
         responseEl.textContent = data.answer || "Sorry, I couldn't find an answer.";
         responseEl.classList.remove("loading");
       } catch (err) {
         console.error("[Busy Brief chat error]", err);
-        responseEl.textContent = "Error connecting to analysis engine.";
+        responseEl.textContent = err.message || "Error connecting to analysis engine.";
         responseEl.classList.remove("loading");
       } finally {
         input.disabled = false;

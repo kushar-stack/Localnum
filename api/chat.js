@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "OpenAI API key not configured." });
+    return res.status(503).json({ error: "Article chat is not configured right now." });
   }
 
   const systemMessage = "You are a precise news analyst. Answer the user's question based ONLY on the provided article context. Be concise (max 3 sentences). If the information is not in the text, politely say you don't know.";
@@ -42,7 +42,8 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI error: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `OpenAI error: ${response.status}`);
     }
 
     const data = await response.json();

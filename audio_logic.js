@@ -1,6 +1,6 @@
 import { elements } from "./dom.js";
 import { appState, audioState } from "./state.js";
-
+import { summarizeArticle } from "./logic.js";
 import { setStatus } from "./render.js";
 
 let player = new Audio();
@@ -31,11 +31,14 @@ export function initAudio() {
 export function playBrief() {
   if (!appState.currentBrief.length) return;
   
-  audioState.queue = appState.currentBrief.map(article => ({
-    title: article.title,
-    bullets: article.summary?.bullets || [],
-    id: article.id
-  }));
+  audioState.queue = appState.currentBrief.map((article) => {
+    const summary = summarizeArticle(article);
+    return {
+      title: article.title,
+      bullets: article.summary?.bullets?.length ? article.summary.bullets : summary.bullets,
+      id: article.id,
+    };
+  });
   
   audioState.active = true;
   audioState.currentIndex = 0;
@@ -67,7 +70,10 @@ async function speakCurrent() {
       body: JSON.stringify({ text })
     });
 
-    if (!res.ok) throw new Error("Audio generation failed");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "Audio generation failed");
+    }
 
     const blob = await res.blob();
     currentBlobUrl = URL.createObjectURL(blob);
@@ -75,7 +81,7 @@ async function speakCurrent() {
     player.play();
   } catch (err) {
     console.error("[Busy Brief TTS error]", err);
-    setStatus("Failed to load premium audio. Skipping story.", "error");
+    setStatus(err.message || "Failed to load premium audio. Skipping story.", "error");
     setTimeout(nextAudio, 1500);
   }
 }

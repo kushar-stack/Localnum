@@ -11,6 +11,24 @@ const BASE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const BASE_RATE_LIMIT_MAX = 30;
 const SUMMARIES_RATE_LIMIT_MAX = 8;
 const rateLimitStore = new Map();
+const NEWS_LANGUAGE_MAP = {
+  English: "en",
+  Spanish: "es",
+  French: "fr",
+  German: "de",
+  Chinese: "zh",
+  Japanese: "jp",
+  Hindi: "en",
+};
+const GLOBAL_CATEGORY_SEARCH_MAP = {
+  general: "world news OR international affairs OR diplomacy",
+  business: "business OR economy OR markets",
+  technology: "technology OR software OR AI",
+  science: "science OR research OR space",
+  health: "health OR medicine OR public health",
+  sports: "sports OR league OR tournament",
+  entertainment: "entertainment OR film OR music OR streaming",
+};
 
 function getCacheKey(params) {
   const str = JSON.stringify(params);
@@ -44,6 +62,20 @@ function stripTo(text, limit) {
 function setCommonHeaders(response) {
   response.setHeader("X-Content-Type-Options", "nosniff");
   response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+}
+
+function applyRangeToParams(params, range) {
+  const now = new Date();
+  if (range === "24h") {
+    now.setHours(now.getHours() - 24);
+    params.set("from", now.toISOString());
+  } else if (range === "30d") {
+    now.setDate(now.getDate() - 30);
+    params.set("from", now.toISOString());
+  } else if (range === "7d") {
+    now.setDate(now.getDate() - 7);
+    params.set("from", now.toISOString());
+  }
 }
 
 function getClientIp(request) {
@@ -215,29 +247,8 @@ export default async function handler(request, response) {
       : "publishedAt";
     params.set("sortBy", allowedSort);
     
-    // Map lang to NewsAPI codes
-    const langMap = {
-      "English": "en",
-      "Spanish": "es",
-      "French": "fr",
-      "German": "de",
-      "Chinese": "zh",
-      "Japanese": "jp",
-      "Hindi": "en" // NewsAPI doesn't support Hindi, fallback to en but AI still translates
-    };
-    params.set("language", langMap[lang] || "en");
-
-    const now = new Date();
-    if (range === "24h") {
-      now.setHours(now.getHours() - 24);
-      params.set("from", now.toISOString());
-    } else if (range === "30d") {
-      now.setDate(now.getDate() - 30);
-      params.set("from", now.toISOString());
-    } else if (range === "7d") {
-      now.setDate(now.getDate() - 7);
-      params.set("from", now.toISOString());
-    }
+    params.set("language", NEWS_LANGUAGE_MAP[lang] || "en");
+    applyRangeToParams(params, range);
   } else {
     // If country is 'all', 'global', or empty, we don't set the country param.
     // NewsAPI top-headlines requires at least country, category, or sources.
@@ -245,10 +256,11 @@ export default async function handler(request, response) {
     
     if (isGlobal) {
       if (category) {
-        // NewsAPI top-headlines with category REQUIRES a country. 
-        // We default to 'us' for the Global category view to ensure articles load.
-        params.set("country", "us");
-        params.set("category", String(category).slice(0, 20));
+        endpoint = `${NEWS_URL}/everything`;
+        params.set("q", (GLOBAL_CATEGORY_SEARCH_MAP[category] || String(category)).slice(0, 200));
+        params.set("sortBy", "publishedAt");
+        params.set("language", NEWS_LANGUAGE_MAP[lang] || "en");
+        applyRangeToParams(params, range);
       } else {
         // Global + All categories = default to curated top global sources
         params.set("sources", "reuters,bbc-news,cnn,associated-press,the-wall-street-journal,bloomberg");
@@ -319,4 +331,3 @@ export default async function handler(request, response) {
     response.status(500).json({ error: "Unable to reach NewsAPI" });
   }
 }
-

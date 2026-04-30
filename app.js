@@ -1,7 +1,7 @@
-import { hydrateStateFromUrl, state } from "./state.js";
+import { hydrateStateFromUrl, state, persistState } from "./state.js";
 import { initEvents } from "./events.js";
 import { fetchNews } from "./app_logic.js";
-import { applyTheme, renderTopics, renderActiveFilters, renderAdvancedFilters, refreshScrollReveal, syncFormToState } from "./render.js";
+import { applyTheme, renderTopics, renderActiveFilters, renderAdvancedFilters, refreshScrollReveal, renderTrustSurface, syncFormToState } from "./render.js";
 
 // Header scroll shadow
 function initHeaderScroll() {
@@ -36,7 +36,18 @@ async function restoreProfile() {
   }
 }
 
-function init() {
+async function loadHealthSnapshot() {
+  try {
+    const res = await fetch("/api/health");
+    if (!res.ok) return;
+    const health = await res.json();
+    renderTrustSurface(health);
+  } catch (err) {
+    console.log("[Busy Brief] Health diagnostics unavailable.");
+  }
+}
+
+async function init() {
   hydrateStateFromUrl();
   renderTopics();
   renderActiveFilters();
@@ -49,7 +60,8 @@ function init() {
   
   // Connect events and load news
   initEvents();
-  restoreProfile();
+  await restoreProfile();
+  await loadHealthSnapshot();
   fetchNews({ reset: true });
   
   // Initial reveal check

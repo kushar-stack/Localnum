@@ -7,6 +7,7 @@ import {
   formatDate,
   formatDateRange,
   getCredibilityBadge,
+  getBiasBadge,
   clampText,
   stripHtml,
   cleanText,
@@ -14,6 +15,19 @@ import {
   toSafeExternalUrl,
 } from "./utils.js";
 import { summarizeArticle } from "./logic.js";
+
+let healthSnapshot = null;
+
+function getServiceById(id) {
+  return Array.isArray(healthSnapshot?.services)
+    ? healthSnapshot.services.find((service) => service.id === id) || null
+    : null;
+}
+
+function isServiceAvailable(id) {
+  const service = getServiceById(id);
+  return !service || service.status === "ready";
+}
 
 function injectTickers(text) {
   if (!text) return "";
@@ -41,6 +55,21 @@ function getCategoryLabel(category) {
 
 function getModeLabel() {
   return state.myBrief ? "My Brief" : state.mode === "search" ? "Search" : "Headlines";
+}
+
+function getHealthTone(status) {
+  if (status === "ready" || status === "healthy") return "ok";
+  if (status === "limited") return "warn";
+  return "down";
+}
+
+function getHealthLabel(status) {
+  if (status === "ready") return "Ready";
+  if (status === "limited") return "Limited";
+  if (status === "offline") return "Offline";
+  if (status === "healthy") return "Healthy";
+  if (status === "degraded") return "Degraded";
+  return "Unknown";
 }
 
 function getArticleSources(article) {
@@ -125,6 +154,7 @@ export function renderAdvancedFilters() {
 }
 
 export function syncFormToState() {
+  if (elements.query) elements.query.value = state.query || "";
   if (elements.country) elements.country.value = state.country || "us";
   if (elements.briefing) elements.briefing.value = state.briefing || "standard";
   if (elements.range) elements.range.value = state.range || "7d";
@@ -135,6 +165,26 @@ export function syncFormToState() {
   if (elements.conciseHeadlines) elements.conciseHeadlines.checked = Boolean(state.conciseHeadlines);
   if (elements.myBrief) elements.myBrief.checked = Boolean(state.myBrief);
   if (elements.language) elements.language.value = state.language || "English";
+
+  const searchActive = state.mode === "search" || state.myBrief;
+  if (elements.modeHeadlines) {
+    elements.modeHeadlines.classList.toggle("active", !searchActive);
+    elements.modeHeadlines.setAttribute("aria-pressed", searchActive ? "false" : "true");
+  }
+  if (elements.modeSearch) {
+    elements.modeSearch.classList.toggle("active", searchActive);
+    elements.modeSearch.setAttribute("aria-pressed", searchActive ? "true" : "false");
+  }
+
+  elements.categoryChips?.querySelectorAll(".chip").forEach((chip) => {
+    const chipCategory = chip.dataset.category ?? "";
+    const chipQuery = chip.dataset.query || "";
+    const isActive = chipQuery
+      ? searchActive && state.query === chipQuery
+      : !searchActive && chipCategory === (state.category || "");
+    chip.classList.toggle("active", isActive);
+    chip.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
 }
 
 export function applyTheme(theme) {
@@ -162,6 +212,7 @@ export function renderActiveFilters() {
   if (state.range !== "7d") filters.push(state.range === "24h" ? "Past 24h" : "Past 30d");
 
   elements.activeFilters.innerHTML = filters.map((filter) => `<span class="filter-pill">${escapeHtml(filter)}</span>`).join("");
+  renderTrustSurface();
 }
 
 export function renderTopics() {
@@ -169,6 +220,89 @@ export function renderTopics() {
   elements.topicList.innerHTML = state.topics
     .map((topic) => `<span class="topic-chip">${escapeHtml(topic)}<button type="button" data-topic="${escapeHtml(topic)}" aria-label="Remove ${escapeHtml(topic)}">x</button></span>`)
     .join("");
+}
+
+export function renderTrustSurface(nextHealth = null) {
+  if (nextHealth) healthSnapshot = nextHealth;
+  if (!elements.context) return;
+
+  const currentHealth = healthSnapshot;
+  const trackedServices = Array.isArray(currentHealth?.services) ? currentHealth.services : [];
+  const degradedServices = trackedServices.filter((service) => service.status !== "ready");
+  const preferences = [
+    `Mode: ${getModeLabel()}`,
+    `Region: ${getCountryLabel(state.country)}`,
+    `Language: ${state.language || "English"}`,
+    `Topics: ${state.topics.length}`,
+    `Sync: ${getServiceById("profile")?.status === "ready" ? "Cloud profile" : "Local device only"}`,
+  ];
+
+  const trustSummary = currentHealth?.summary || "Live service diagnostics will appear here when available.";
+  const trustTone = getHealthTone(currentHealth?.overall || "limited");
+  const checkedAt = currentHealth?.checkedAt
+    ? new Date(currentHealth.checkedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+    : "Not checked yet";
+
+  elements.context.innerHTML = `
+    <div class="context-grid">
+      <article class="context-card reveal">
+        <div>
+          <span class="context-kicker">Trust Center</span>
+          <h2>Operational clarity, not guesswork.</h2>
+          <p>${escapeHtml(trustSummary)}</p>
+          <div class="context-status-row">
+            <span class="context-tag ${escapeHtml(trustTone)}">${escapeHtml(getHealthLabel(currentHealth?.overall || "limited"))}</span>
+            <span class="context-meta">Last checked ${escapeHtml(checkedAt)}</span>
+          </div>
+          <div class="service-grid">
+            ${trackedServices.map((service) => `
+              <div class="service-pill ${escapeHtml(getHealthTone(service.status))}">
+                <strong>${escapeHtml(service.label)}</strong>
+                <span>${escapeHtml(getHealthLabel(service.status))}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+        <a class="context-link" href="/api/health" target="_blank" rel="noopener noreferrer">Open diagnostics</a>
+      </article>
+
+      <article class="context-card reveal">
+        <div>
+          <span class="context-kicker">Your Setup</span>
+          <h2>Saved preferences at a glance.</h2>
+          <p>${escapeHtml(state.myBrief ? "Your brief is tuned around saved interests and search-driven discovery." : "You are in the live headlines view with region and quality controls available.")}</p>
+          <div class="service-grid compact">
+            ${preferences.map((item) => `<div class="service-pill neutral"><strong>${escapeHtml(item)}</strong></div>`).join("")}
+          </div>
+        </div>
+        <span class="context-tag neutral">${escapeHtml(degradedServices.length ? `${degradedServices.length} service checks need attention` : "All tracked services look good")}</span>
+      </article>
+    </div>
+  `;
+
+  renderServiceNotice(currentHealth);
+  updateFeatureAvailability();
+}
+
+export function renderServiceNotice(nextHealth = null) {
+  if (nextHealth) healthSnapshot = nextHealth;
+  if (!elements.filterNotice || !elements.filterNoticeText) return;
+
+  const currentHealth = healthSnapshot;
+  const degradedServices = Array.isArray(currentHealth?.services)
+    ? currentHealth.services.filter((service) => service.status !== "ready")
+    : [];
+
+  if (!degradedServices.length) {
+    elements.filterNotice.classList.add("hidden");
+    elements.resetFilters?.classList.add("hidden");
+    return;
+  }
+
+  const priorityServices = degradedServices.slice(0, 2).map((service) => `${service.label}: ${getHealthLabel(service.status).toLowerCase()}`);
+  elements.filterNoticeText.textContent = `Service note: ${priorityServices.join(" | ")}.`;
+  elements.filterNotice.classList.remove("hidden");
+  elements.resetFilters?.classList.add("hidden");
 }
 
 export function renderHero(articles) {
@@ -215,6 +349,37 @@ export function renderMetrics(articles) {
   `).join("");
 }
 
+export function renderSpotlights(articles) {
+  if (!elements.spotlightGrid) return;
+  const featured = articles.slice(0, 3);
+  if (!featured.length) {
+    elements.spotlightGrid.innerHTML = "";
+    return;
+  }
+
+  elements.spotlightGrid.innerHTML = featured.map((article) => {
+    const summary = summarizeArticle(article);
+    const primarySource = article.source?.name || getArticleSources(article)[0]?.name || "News source";
+    const watch = sanitizeSummaryText(summary.watch, 170) || "Watch for follow-on developments as the story matures.";
+    return `
+      <article class="spotlight-card reveal">
+        <span class="spotlight-kicker">Watchlist</span>
+        <h3>${escapeHtml(formatTitle(article.title, article.source?.name))}</h3>
+        <p>${escapeHtml(watch)}</p>
+        <div class="spotlight-pills">
+          <span class="signal-chip">${escapeHtml(primarySource)}</span>
+          <span class="signal-chip">${escapeHtml(getCoveragePill(article))}</span>
+          <span class="signal-chip">${escapeHtml(getTrustLabel(article))}</span>
+        </div>
+        <div class="spotlight-actions">
+          <button class="ghost-btn" type="button" data-open-article="${escapeHtml(article.id || "")}">Open brief</button>
+          ${buildSourceLink(article.url)}
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
 export function cardTemplate(article, index = 0) {
   const summary = summarizeArticle(article);
   const title = escapeHtml(formatTitle(article.title, article.source?.name));
@@ -225,6 +390,7 @@ export function cardTemplate(article, index = 0) {
     formatDateRange(article.firstPublishedAt, article.lastPublishedAt) || formatDate(article.publishedAt),
   ].filter(Boolean).map(escapeHtml).join(" | ");
   const accent = categoryConfig[article.category || state.category || ""]?.accent || "var(--accent)";
+  const chatEnabled = isServiceAvailable("chat");
   const imageHtml = article.urlToImage
     ? `<img class="article-thumb" src="${escapeHtml(article.urlToImage)}" alt="" loading="${index < 2 ? "eager" : "lazy"}" onerror="this.style.display='none';this.parentElement.classList.add('fallback-only');" />`
     : "";
@@ -255,9 +421,12 @@ export function cardTemplate(article, index = 0) {
             <button class="ghost-btn" type="button" data-open-article="${escapeHtml(article.id || "")}">Open brief</button>
             ${buildSourceLink(article.url)}
           </div>
+        </div>
         <div class="story-chat">
           <div class="chat-response hidden"></div>
-          <input type="text" placeholder="Ask a question..." class="chat-input" data-chat-id="${escapeHtml(article.id || "")}" />
+          ${chatEnabled
+            ? `<input type="text" placeholder="Ask a question..." class="chat-input" data-chat-id="${escapeHtml(article.id || "")}" />`
+            : `<div class="chat-disabled">Article chat is unavailable until the AI analysis service is configured.</div>`}
         </div>
       </div>
     </article>
@@ -266,10 +435,12 @@ export function cardTemplate(article, index = 0) {
 
 export function renderNews(articles, { append = false } = {}) {
   if (!articles.length) {
+    if (elements.bentoGrid) elements.bentoGrid.innerHTML = "";
+    if (elements.loadMore) elements.loadMore.style.display = "none";
     if (elements.news) {
       elements.news.innerHTML = `
         <article class="empty-state reveal">
-          <div class="empty-icon">×</div>
+          <div class="empty-icon">&times;</div>
           <span class="empty-kicker">No signal matching this lens</span>
           <h3>The brief is quiet</h3>
           <p>Try clearing your filters or switching to global headlines.</p>
@@ -297,7 +468,11 @@ export function renderNews(articles, { append = false } = {}) {
 
   if (elements.news) {
     if (append) {
-      const existingIds = new Set(Array.from(elements.news.querySelectorAll('.story-card')).map(el => el.dataset.id));
+      const existingIds = new Set(
+        Array.from(document.querySelectorAll(".story-card"))
+          .map((el) => el.dataset.id)
+          .filter(Boolean)
+      );
       const newArticles = remainder.filter(article => !existingIds.has(article.id));
       if (newArticles.length) {
         const html = newArticles.map((article, index) => cardTemplate(article, existingIds.size + index + 3)).join("");
@@ -314,6 +489,20 @@ export function openArticle(articleId) {
   if (!article || !elements.articleModal) return;
   const summary = summarizeArticle(article);
   const sources = getArticleSources(article);
+  const uniqueSources = [];
+  const seen = new Set();
+  for (const source of sources) {
+    const key = `${source.name || ""}|${source.url || ""}`;
+    if (!source.name || seen.has(key)) continue;
+    seen.add(key);
+    uniqueSources.push(source);
+  }
+  const firstSource = [...uniqueSources]
+    .filter((source) => source.publishedAt)
+    .sort((left, right) => new Date(left.publishedAt || 0) - new Date(right.publishedAt || 0))[0];
+  const latestSource = [...uniqueSources]
+    .filter((source) => source.publishedAt)
+    .sort((left, right) => new Date(right.publishedAt || 0) - new Date(left.publishedAt || 0))[0];
 
   if (elements.articleSummaryOrigin) elements.articleSummaryOrigin.textContent = getSummaryOrigin(article);
   if (elements.articleTrust) elements.articleTrust.textContent = getTrustLabel(article);
@@ -344,15 +533,46 @@ export function openArticle(articleId) {
     elements.articleWatch.textContent = sanitizeSummaryText(summary.watch, 200) || "Watch for meaningful follow-on developments over the next few days.";
   }
   if (elements.articleSources) {
-    elements.articleSources.innerHTML = sources.map(source => `
-      <div class="source-item">
-        <div class="source-item-main">
-          <strong>${escapeHtml(source.name || "Unknown Source")}</strong>
-          ${source.publishedAt ? `<span>${formatDate(source.publishedAt)}</span>` : ""}
+    elements.articleSources.innerHTML = `
+      <div class="coverage-overview">
+        <div class="coverage-overview-item">
+          <strong>${escapeHtml(String(uniqueSources.length || 1))}</strong>
+          <span>tracked outlets</span>
         </div>
-        ${buildSourceLink(source.url, "View original →", "source-link")}
+        <div class="coverage-overview-item">
+          <strong>${escapeHtml(firstSource?.name || article.source?.name || "Lead source")}</strong>
+          <span>${escapeHtml(firstSource?.publishedAt ? `first seen ${formatDate(firstSource.publishedAt)}` : "lead source in this cluster")}</span>
+        </div>
+        <div class="coverage-overview-item">
+          <strong>${escapeHtml(latestSource?.name || article.source?.name || "Latest source")}</strong>
+          <span>${escapeHtml(latestSource?.publishedAt ? `latest update ${formatDate(latestSource.publishedAt)}` : "latest article view")}</span>
+        </div>
       </div>
-    `).join("");
+      <div class="source-list">
+        ${uniqueSources.map((source, index) => {
+          const credibility = getCredibilityBadge(source.name || "");
+          const bias = getBiasBadge(source.name || "");
+          const labels = [
+            credibility ? `${credibility} trust` : "",
+            bias && bias !== "Unknown" ? `${bias} lean` : "",
+            index === 0 ? "Most recent" : "",
+            firstSource && source.name === firstSource.name && source.publishedAt === firstSource.publishedAt ? "Earliest in cluster" : "",
+          ].filter(Boolean);
+          return `
+            <div class="source-item">
+              <div class="source-item-main">
+                <strong>${escapeHtml(source.name || "Unknown source")}</strong>
+                <span>${escapeHtml(source.publishedAt ? formatDate(source.publishedAt) : "Publication time unavailable")}</span>
+                <div class="source-notes">
+                  ${labels.map((label) => `<span class="source-note">${escapeHtml(label)}</span>`).join("")}
+                </div>
+              </div>
+              ${buildSourceLink(source.url, "View original", "source-link")}
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
   }
   if (elements.articleLink) {
     const safeUrl = toSafeExternalUrl(article.url);
@@ -391,6 +611,22 @@ export function openArticle(articleId) {
     };
     elements.articleModal.addEventListener("keydown", appState.modalFocusHandler);
     setTimeout(() => first.focus(), 50);
+  }
+}
+
+function updateFeatureAvailability() {
+  const audioService = getServiceById("audio");
+  if (elements.playAudio) {
+    const audioUnavailable = Boolean(audioService && audioService.status !== "ready");
+    elements.playAudio.disabled = audioUnavailable;
+    elements.playAudio.title = audioUnavailable
+      ? audioService.detail || "Audio brief is unavailable right now."
+      : "Listen to the current brief";
+    elements.playAudio.textContent = audioUnavailable ? "Audio unavailable" : "Listen";
+  }
+
+  if (elements.audioStatus && audioService?.status !== "ready") {
+    elements.audioStatus.textContent = audioService?.detail || "Audio brief unavailable.";
   }
 }
 
@@ -442,6 +678,7 @@ export async function refreshTickers() {
       }
       
       const points = data.data;
+      if (!Array.isArray(points) || points.length < 2) continue;
       const min = Math.min(...points);
       const max = Math.max(...points);
       const range = max - min || 1;
@@ -469,3 +706,4 @@ export async function refreshTickers() {
     }
   }
 }
+

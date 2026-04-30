@@ -1,5 +1,5 @@
 /**
- * /api/subscribe.js — Vercel Serverless Function
+ * /api/subscribe.js - Vercel Serverless Function
  * Collects email subscribers for the Busy Brief daily newsletter.
  *
  * Storage strategy: writes to Vercel KV if available,
@@ -34,7 +34,6 @@ function applyCors(req, res) {
   const origin = req.headers.origin || "";
   const allowedOrigins = getAllowedOrigins();
   if (!origin) return true;
-  // If allowedOrigins is not configured, fallback to denying instead of allowing all
   if (allowedOrigins.length > 0 && allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
@@ -101,7 +100,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, message: "Subscribed successfully. Welcome to Busy Brief!" });
     }
 
-    // Validate
     if (!email || typeof email !== "string") {
       return res.status(400).json({ error: "A valid email address is required." });
     }
@@ -113,7 +111,7 @@ export default async function handler(req, res) {
     }
 
     // ----------------------------------------------------------------
-    // OPTION A: Loops.so (recommended free tier — great DX, great email)
+    // OPTION A: Loops.so (recommended free tier - great DX, great email)
     // ----------------------------------------------------------------
     // const { LoopsClient } = await import("loops");
     // const loops = new LoopsClient(process.env.LOOPS_API_KEY);
@@ -131,7 +129,7 @@ export default async function handler(req, res) {
     // await resend.emails.send({
     //   from: "briefs@busybrief.com",
     //   to: normalized,
-    //   subject: "Welcome to Busy Brief ✦",
+    //   subject: "Welcome to Busy Brief",
     //   html: welcomeEmailHtml(normalized),
     // });
 
@@ -155,13 +153,11 @@ export default async function handler(req, res) {
       ok: true,
       message: "Subscribed successfully. Welcome to Busy Brief!",
     });
-
   } catch (err) {
     console.error("[Busy Brief subscribe error]", err);
 
-    // Handle duplicate subscriber gracefully
     if (err?.response?.status === 400 && err?.response?.text?.includes("Member Exists")) {
-      return res.status(200).json({ ok: true, message: "You're already subscribed — check your inbox!" });
+      return res.status(200).json({ ok: true, message: "You're already subscribed - check your inbox!" });
     }
 
     return res.status(500).json({ error: "Could not process your subscription. Please try again." });
@@ -184,24 +180,23 @@ function welcomeEmailHtml(email) {
     </div>
     <div style="padding:2rem;">
       <p style="margin:0 0 1rem;color:#0c1a14;font-size:0.95rem;line-height:1.65;">
-        You're in. Every morning, we'll brief you on what actually matters — no noise, no clickbait. 
+        You are in. Every morning, we will brief you on what actually matters - no noise, no clickbait.
         Just the essential signals from tech, business, markets, and world news.
       </p>
       <p style="margin:0 0 1.5rem;color:#5b6e62;font-size:0.88rem;line-height:1.65;">
-        Your first brief arrives tomorrow at <strong>7 AM</strong>. If you can't wait, 
-        <a href="https://localnum-8i1b4tdz5-kushalnsharma-3823s-projects.vercel.app" style="color:#0d3b2e;font-weight:600;">read today's brief now →</a>
+        Your first brief arrives tomorrow at <strong>7 AM</strong>. If you cannot wait,
+        <a href="https://localnum.vercel.app" style="color:#0d3b2e;font-weight:600;">read today's brief now &rarr;</a>
       </p>
       <div style="text-align:center;">
-        <a href="https://localnum-8i1b4tdz5-kushalnsharma-3823s-projects.vercel.app" 
+        <a href="https://localnum.vercel.app"
            style="display:inline-block;background:#0d3b2e;color:#fff;text-decoration:none;padding:0.75rem 1.8rem;border-radius:999px;font-weight:600;font-size:0.9rem;">
-          Read Today's Brief →
+          Read Today's Brief &rarr;
         </a>
       </div>
     </div>
     <div style="padding:1rem 2rem 1.5rem;border-top:1px solid #e2d9cc;text-align:center;">
       <p style="margin:0;font-size:0.75rem;color:#9aada2;">
-        Busy Brief · Verified sources · AI-briefed daily<br>
-        <a href="#" style="color:#9aada2;">Unsubscribe</a>
+        Busy Brief | Verified sources | AI-briefed daily
       </p>
     </div>
   </div>
