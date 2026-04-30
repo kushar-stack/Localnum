@@ -30,6 +30,8 @@ export const appState = {
   currentBrief: [],
   articleMap: new Map(),
   lastFeedNote: "Pulling in the latest coverage.",
+  lastUpdatedAt: null,
+  lastUpdatedSource: "live",
   modalFocusHandler: null,
 };
 

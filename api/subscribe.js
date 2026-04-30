@@ -12,6 +12,7 @@
  */
 
 import crypto from "node:crypto";
+import { kv } from "@vercel/kv";
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = 5;
@@ -78,6 +79,20 @@ function rateLimitExceeded(key) {
   return current.count > RATE_LIMIT_MAX;
 }
 
+async function rateLimitExceededKv(key) {
+  const kvConfigured = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  if (!kvConfigured) return rateLimitExceeded(key);
+  try {
+    const windowId = Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS);
+    const kvKey = `rl_sub:${key}:${windowId}`;
+    const count = await kv.incr(kvKey);
+    if (count === 1) await kv.expire(kvKey, Math.ceil(RATE_LIMIT_WINDOW_MS / 1000));
+    return count > RATE_LIMIT_MAX;
+  } catch {
+    return rateLimitExceeded(key);
+  }
+}
+
 export default async function handler(req, res) {
   setCommonHeaders(res);
   const originAllowed = applyCors(req, res);
@@ -92,7 +107,7 @@ export default async function handler(req, res) {
     const { email, company = "", website = "" } = req.body || {};
     const clientIp = getClientIp(req);
 
-    if (rateLimitExceeded(clientIp)) {
+    if (await rateLimitExceededKv(clientIp)) {
       return res.status(429).json({ error: "Too many requests. Please wait before trying again." });
     }
 

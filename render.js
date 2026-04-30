@@ -323,7 +323,9 @@ export function renderHero(articles) {
   if (elements.summaryHeadline) elements.summaryHeadline.textContent = focus;
   if (elements.summaryDescription) elements.summaryDescription.textContent = `${articles.length} stories in play, ${crossChecked} cross-checked, ${highTrust} from high-trust publishers.`;
   if (elements.lastUpdated) {
-    elements.lastUpdated.textContent = `Updated ${new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`;
+    const stamp = appState.lastUpdatedAt || Date.now();
+    const label = appState.lastUpdatedSource === "cache" ? "Saved" : "Updated";
+    elements.lastUpdated.textContent = `${label} ${new Date(stamp).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`;
   }
   if (elements.feedNote) elements.feedNote.textContent = appState.lastFeedNote;
 }

@@ -1,7 +1,36 @@
+import { kv } from "@vercel/kv";
+
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX = 60;
+
+async function rateLimitExceeded(key) {
+  const kvConfigured = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  if (!kvConfigured) return false;
+  try {
+    const windowId = Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS);
+    const kvKey = `rl_mkt:${key}:${windowId}`;
+    const count = await kv.incr(kvKey);
+    if (count === 1) await kv.expire(kvKey, Math.ceil(RATE_LIMIT_WINDOW_MS / 1000));
+    return count > RATE_LIMIT_MAX;
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
   const { symbol } = req.query;
   const alphaVantageKey = process.env.ALPHAVANTAGE_KEY;
   const demoMode = process.env.ENABLE_DEMO_MARKET_DATA === "true";
+  const clientIp =
+    (typeof req.headers["x-real-ip"] === "string" && req.headers["x-real-ip"]) ||
+    (typeof req.headers["x-vercel-forwarded-for"] === "string" && req.headers["x-vercel-forwarded-for"]) ||
+    (typeof req.headers["x-forwarded-for"] === "string" && req.headers["x-forwarded-for"]) ||
+    req.socket?.remoteAddress ||
+    "unknown";
+  const ipKey = String(clientIp).split(",")[0].trim();
+  if (await rateLimitExceeded(ipKey)) {
+    return res.status(429).json({ error: "Too many requests. Please slow down and try again shortly." });
+  }
   
   if (!symbol || typeof symbol !== "string") {
     return res.status(400).json({ error: "A valid ticker symbol is required." });

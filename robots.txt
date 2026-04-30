@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://localnum.vercel.app/sitemap.xml
+

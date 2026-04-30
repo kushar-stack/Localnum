@@ -61,6 +61,9 @@ export function applyFilters(articles) {
 export async function fetchNews({ reset = false, force = false } = {}) {
   if (appState.isLoading && !force && !reset) return;
 
+  const hadBriefBefore = reset && appState.currentBrief.length > 0;
+  let showedCached = false;
+
   if (reset) {
     appState.page = 1;
     appState.rawArticles = [];
@@ -83,9 +86,12 @@ export async function fetchNews({ reset = false, force = false } = {}) {
   const cached = reset && !force ? await readCache() : null;
   if (reset && cached?.articles?.length) {
     appState.lastFeedNote = `${cached.note || "Showing your saved brief"} while the live feed refreshes.`;
+    appState.lastUpdatedAt = cached.timestamp || null;
+    appState.lastUpdatedSource = "cache";
     const clustered = clusterArticles(cached.articles);
     const filtered = applyFilters(clustered);
     renderCollection(filtered);
+    showedCached = true;
   }
 
   if (reset && !cached) {
@@ -144,9 +150,17 @@ export async function fetchNews({ reset = false, force = false } = {}) {
     }
 
     await writeCache({ articles: appState.rawArticles, note: appState.lastFeedNote });
+    appState.lastUpdatedAt = Date.now();
+    appState.lastUpdatedSource = "live";
     setStatus("Live brief refreshed.", "success");
   } catch (error) {
     if (error.name === "AbortError") return;
+    if (reset && (showedCached || hadBriefBefore)) {
+      const stamp = appState.lastUpdatedAt ? new Date(appState.lastUpdatedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "recently";
+      setStatus(`Live refresh failed — showing your last saved brief (updated ${stamp}).`, "warning");
+      return;
+    }
+
     setStatus(error.message || "Live feed failed to load.", "error");
     if (reset) {
       if (elements.bentoGrid) elements.bentoGrid.innerHTML = "";

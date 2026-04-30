@@ -89,7 +89,7 @@ function getClientIp(request) {
   return request.socket?.remoteAddress || "unknown";
 }
 
-function rateLimitExceeded(key, limit) {
+function rateLimitExceededInMemory(key, limit) {
   const now = Date.now();
 
   // Occasional cleanup to prevent memory leaks in long-running instances
@@ -106,6 +106,24 @@ function rateLimitExceeded(key, limit) {
   }
   current.count += 1;
   return current.count > limit;
+}
+
+async function rateLimitExceeded(key, limit) {
+  const kvConfigured = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  if (!kvConfigured) return rateLimitExceededInMemory(key, limit);
+
+  // KV counter (works across serverless instances)
+  try {
+    const nowWindow = Math.floor(Date.now() / BASE_RATE_LIMIT_WINDOW_MS);
+    const kvKey = `rl:${key}:${nowWindow}`;
+    const count = await kv.incr(kvKey);
+    if (count === 1) {
+      await kv.expire(kvKey, Math.ceil(BASE_RATE_LIMIT_WINDOW_MS / 1000));
+    }
+    return count > limit;
+  } catch {
+    return rateLimitExceededInMemory(key, limit);
+  }
 }
 
 async function summarizeArticles(articles, apiKey, model, summaryLimit, lang = "English") {
@@ -209,7 +227,7 @@ export default async function handler(request, response) {
   const rateLimitKey = `${clientIp}:${wantsSummaries ? "summaries" : "feed"}`;
   const rateLimitMax = wantsSummaries ? SUMMARIES_RATE_LIMIT_MAX : BASE_RATE_LIMIT_MAX;
 
-  if (rateLimitExceeded(rateLimitKey, rateLimitMax)) {
+  if (await rateLimitExceeded(rateLimitKey, rateLimitMax)) {
     response.status(429).json({ error: "Too many requests. Please slow down and try again shortly." });
     return;
   }
