@@ -1,5 +1,5 @@
 import { elements } from "./dom.js";
-import { state, appState, persistState } from "./state.js";
+import { state, appState, persistState, getSeenCluster, markSeenCluster } from "./state.js";
 import { categoryConfig, THEME_KEY } from "./constants.js";
 import {
   escapeHtml,
@@ -109,6 +109,30 @@ function getCoverageLabel(article) {
 function getCoveragePill(article) {
   const count = getArticleSources(article).length || 1;
   return count === 1 ? "1 outlet" : `${count} outlets`;
+}
+
+function getConfidenceScore(article) {
+  const sources = getArticleSources(article);
+  const uniqueNames = new Set(sources.map((s) => s?.name).filter(Boolean));
+  const outletCount = uniqueNames.size || 1;
+  const credibility = sources.map((s) => getCredibilityBadge(s?.name || "")).filter(Boolean);
+  const weights = credibility.map((c) => (c === "High" ? 3 : c === "Medium" ? 2 : c === "Low" ? 1 : 1));
+  const avgCred = weights.length ? weights.reduce((a, b) => a + b, 0) / weights.length : 1;
+
+  const firstT = new Date(article.firstPublishedAt || article.publishedAt || 0).getTime();
+  const lastT = new Date(article.lastPublishedAt || article.publishedAt || 0).getTime();
+  const spreadHours = firstT && lastT ? Math.abs(lastT - firstT) / (1000 * 60 * 60) : 0;
+
+  const outletScore = Math.min(45, outletCount * 12);
+  const credScore = Math.min(35, (avgCred / 3) * 35);
+  const spreadScore = Math.min(20, spreadHours >= 12 ? 20 : (spreadHours / 12) * 20);
+  return Math.round(outletScore + credScore + spreadScore);
+}
+
+function getConfidenceLabel(score) {
+  if (score >= 80) return "High";
+  if (score >= 55) return "Medium";
+  return "Developing";
 }
 
 function estimateReadTime(article) {
@@ -393,6 +417,14 @@ export function cardTemplate(article, index = 0) {
   ].filter(Boolean).map(escapeHtml).join(" | ");
   const accent = categoryConfig[article.category || state.category || ""]?.accent || "var(--accent)";
   const chatEnabled = isServiceAvailable("chat");
+  const confidence = getConfidenceScore(article);
+  const confidenceLabel = getConfidenceLabel(confidence);
+  const seen = getSeenCluster(article.id || "");
+  const hasNewUpdate = Boolean(
+    seen?.lastPublishedAt &&
+      article.lastPublishedAt &&
+      new Date(article.lastPublishedAt).getTime() > new Date(seen.lastPublishedAt).getTime()
+  );
   const imageHtml = article.urlToImage
     ? `<img class="article-thumb" src="${escapeHtml(article.urlToImage)}" alt="" loading="${index < 2 ? "eager" : "lazy"}" onerror="this.style.display='none';this.parentElement.classList.add('fallback-only');" />`
     : "";
@@ -418,6 +450,8 @@ export function cardTemplate(article, index = 0) {
           <div class="story-signals">
             <span class="signal-chip">${escapeHtml(getSummaryOrigin(article))}</span>
             <span class="signal-chip">${escapeHtml(getTrustLabel(article))}</span>
+            <span class="signal-chip">${escapeHtml(`Confidence: ${confidenceLabel}`)}</span>
+            ${hasNewUpdate ? `<span class="signal-chip">${escapeHtml("New update")}</span>` : ""}
           </div>
           <div class="story-actions">
             <button class="ghost-btn" type="button" data-open-article="${escapeHtml(article.id || "")}">Open brief</button>
@@ -489,6 +523,9 @@ export function renderNews(articles, { append = false } = {}) {
 export function openArticle(articleId) {
   const article = appState.articleMap.get(articleId);
   if (!article || !elements.articleModal) return;
+  const seenRecord = getSeenCluster(articleId);
+  const confidence = getConfidenceScore(article);
+  const confidenceLabel = getConfidenceLabel(confidence);
   const summary = summarizeArticle(article);
   const sources = getArticleSources(article);
   const uniqueSources = [];
@@ -535,21 +572,35 @@ export function openArticle(articleId) {
     elements.articleWatch.textContent = sanitizeSummaryText(summary.watch, 200) || "Watch for meaningful follow-on developments over the next few days.";
   }
   if (elements.articleSources) {
-    elements.articleSources.innerHTML = `
+    const newSourcesCount =
+      seenRecord?.sourcesCount && uniqueSources.length
+        ? Math.max(0, uniqueSources.length - seenRecord.sourcesCount)
+        : 0;
+    const changed =
+      seenRecord?.lastPublishedAt && article.lastPublishedAt
+        ? new Date(article.lastPublishedAt).getTime() > new Date(seenRecord.lastPublishedAt).getTime()
+        : false;
+
+    const firstSeenText = firstSource?.publishedAt ? `first seen ${formatDate(firstSource.publishedAt)}` : "first seen time unavailable";
+    const latestSeenText = latestSource?.publishedAt ? `latest update ${formatDate(latestSource.publishedAt)}` : "latest update time unavailable";
+    const overviewHtml = `
       <div class="coverage-overview">
         <div class="coverage-overview-item">
-          <strong>${escapeHtml(String(uniqueSources.length || 1))}</strong>
-          <span>tracked outlets</span>
+          <strong>${escapeHtml(`${confidenceLabel} (${confidence})`)}</strong>
+          <span>confidence score</span>
         </div>
         <div class="coverage-overview-item">
-          <strong>${escapeHtml(firstSource?.name || article.source?.name || "Lead source")}</strong>
-          <span>${escapeHtml(firstSource?.publishedAt ? `first seen ${formatDate(firstSource.publishedAt)}` : "lead source in this cluster")}</span>
+          <strong>${escapeHtml(changed ? "Updated since last view" : "No new updates")}</strong>
+          <span>${escapeHtml(seenRecord?.lastPublishedAt ? `last seen ${formatDate(seenRecord.lastPublishedAt)}` : "first time viewing")}</span>
         </div>
         <div class="coverage-overview-item">
-          <strong>${escapeHtml(latestSource?.name || article.source?.name || "Latest source")}</strong>
-          <span>${escapeHtml(latestSource?.publishedAt ? `latest update ${formatDate(latestSource.publishedAt)}` : "latest article view")}</span>
+          <strong>${escapeHtml(newSourcesCount ? `+${newSourcesCount} outlets` : `${uniqueSources.length || 1} outlets`)}</strong>
+          <span>${escapeHtml(`${firstSeenText} • ${latestSeenText}`)}</span>
         </div>
       </div>
+    `;
+    elements.articleSources.innerHTML = `
+      ${overviewHtml}
       <div class="source-list">
         ${uniqueSources.map((source, index) => {
           const credibility = getCredibilityBadge(source.name || "");
@@ -581,7 +632,8 @@ export function openArticle(articleId) {
     elements.articleLink.href = safeUrl || "#";
     elements.articleLink.style.display = safeUrl ? "inline-flex" : "none";
     if (elements.articleShare) {
-      elements.articleShare.dataset.url = safeUrl || "";
+      const shareUrl = `${window.location.origin}${window.location.pathname}?story=${encodeURIComponent(articleId)}`;
+      elements.articleShare.dataset.url = shareUrl;
       elements.articleShare.disabled = !safeUrl;
     }
   }
@@ -614,6 +666,8 @@ export function openArticle(articleId) {
     elements.articleModal.addEventListener("keydown", appState.modalFocusHandler);
     setTimeout(() => first.focus(), 50);
   }
+
+  markSeenCluster(article);
 }
 
 function updateFeatureAvailability() {

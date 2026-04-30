@@ -32,8 +32,70 @@ export const appState = {
   lastFeedNote: "Pulling in the latest coverage.",
   lastUpdatedAt: null,
   lastUpdatedSource: "live",
+  pendingStoryId: null,
   modalFocusHandler: null,
 };
+
+const SEEN_KEY = "seenClustersV1";
+const SEEN_LIMIT = 250;
+
+function safeParseJson(value, fallback) {
+  try {
+    if (!value) return fallback;
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function getPendingStoryIdFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const story = params.get("story");
+    return story ? String(story) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function readSeenClusters() {
+  return safeParseJson(localStorage.getItem(SEEN_KEY), {});
+}
+
+export function getSeenCluster(id) {
+  if (!id) return null;
+  const map = readSeenClusters();
+  return map[String(id)] || null;
+}
+
+export function markSeenCluster(article) {
+  const id = article?.id;
+  if (!id) return;
+  const map = readSeenClusters();
+
+  const sources = Array.isArray(article.sourceMeta) ? article.sourceMeta.filter((s) => s?.name) : [];
+  const uniqueSources = new Set(sources.map((s) => s.name));
+  const lastPublishedAt = article.lastPublishedAt || article.publishedAt || "";
+
+  map[String(id)] = {
+    seenAt: Date.now(),
+    lastPublishedAt,
+    sourcesCount: uniqueSources.size || 0,
+    title: String(article.title || "").slice(0, 240),
+  };
+
+  const keys = Object.keys(map);
+  if (keys.length > SEEN_LIMIT) {
+    keys
+      .map((key) => ({ key, seenAt: Number(map[key]?.seenAt || 0) }))
+      .sort((a, b) => a.seenAt - b.seenAt)
+      .slice(0, Math.max(0, keys.length - SEEN_LIMIT))
+      .forEach(({ key }) => delete map[key]);
+  }
+
+  localStorage.setItem(SEEN_KEY, JSON.stringify(map));
+}
 
 export const audioState = {
   active: false,

@@ -7,6 +7,7 @@ import {
   renderMetrics,
   renderSpotlights,
   renderNews,
+  openArticle,
   setStatus,
   refreshScrollReveal,
   refreshTickers,
@@ -205,6 +206,11 @@ export function renderCollection(articles, { append = false } = {}) {
   const update = () => {
     appState.currentBrief = articles;
     appState.articleMap = new Map(articles.map(a => [a.id, a]));
+    if (appState.pendingStoryId && appState.articleMap.has(appState.pendingStoryId)) {
+      const toOpen = appState.pendingStoryId;
+      appState.pendingStoryId = null;
+      openArticle(toOpen);
+    }
     
     // Always render hero/metrics for accurate counts, even on append
     renderHero(articles);

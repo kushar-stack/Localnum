@@ -1,4 +1,4 @@
-import { hydrateStateFromUrl, state, persistState } from "./state.js";
+import { hydrateStateFromUrl, state, persistState, appState, getPendingStoryIdFromUrl } from "./state.js";
 import { initEvents } from "./events.js";
 import { fetchNews } from "./app_logic.js";
 import { applyTheme, renderTopics, renderActiveFilters, renderAdvancedFilters, refreshScrollReveal, renderTrustSurface, syncFormToState } from "./render.js";
@@ -49,6 +49,7 @@ async function loadHealthSnapshot() {
 
 async function init() {
   hydrateStateFromUrl();
+  appState.pendingStoryId = getPendingStoryIdFromUrl();
   renderTopics();
   renderActiveFilters();
   renderAdvancedFilters();
