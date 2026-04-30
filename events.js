@@ -27,7 +27,10 @@ import {
 
 function setMode(mode) {
   state.mode = mode === "search" ? "search" : "headlines";
-  if (state.mode === "headlines" && !state.myBrief) state.query = "";
+  if (state.mode === "headlines" && !state.myBrief) {
+    state.query = "";
+    if (elements.query) elements.query.value = "";
+  }
   persistState();
   syncUrl();
 }
@@ -105,6 +108,8 @@ export function initEvents() {
   elements.country?.addEventListener("change", (event) => {
     state.country = event.target.value;
     state.myBrief = false;
+    state.query = "";
+    if (elements.query) elements.query.value = "";
     setMode("headlines");
     fetchNews({ reset: true });
   });
@@ -138,6 +143,12 @@ export function initEvents() {
     state.coverageFilter = event.target.value;
     persistState();
     renderActiveFilters();
+    fetchNews({ reset: true });
+  });
+
+  elements.language?.addEventListener("change", (event) => {
+    state.language = event.target.value;
+    persistState();
     fetchNews({ reset: true });
   });
 
@@ -296,6 +307,23 @@ export function initEvents() {
     if (button?.dataset.openArticle) openArticle(button.dataset.openArticle);
   });
 
+  // Infinite Scroll Observer
+  if (elements.loadMore) {
+    const observer = new IntersectionObserver((entries) => {
+      const target = entries[0];
+      if (target.isIntersecting && !appState.isLoading) {
+        fetchNews({ reset: false });
+      }
+    }, { rootMargin: "0px 0px 400px 0px", threshold: 0.1 });
+    
+    observer.observe(elements.loadMore);
+    
+    // Fallback click handler just in case
+    elements.loadMore.addEventListener("click", () => {
+      if (!appState.isLoading) fetchNews({ reset: false });
+    });
+  }
+
   // Audio Hub
   initAudio();
   elements.playAudio?.addEventListener("click", toggleAudio);
@@ -306,5 +334,47 @@ export function initEvents() {
 
   // Tools
   elements.downloadBrief?.addEventListener("click", downloadBrief);
+
+  // Chat with the News
+  document.addEventListener("keydown", async (event) => {
+    if (event.target.classList.contains("chat-input") && event.key === "Enter") {
+      const input = event.target;
+      const question = input.value.trim();
+      if (!question) return;
+
+      const articleId = input.dataset.chatId;
+      const article = appState.articleMap.get(articleId);
+      if (!article) return;
+
+      const responseEl = input.previousElementSibling;
+      responseEl.textContent = "Analyzing article...";
+      responseEl.classList.remove("hidden");
+      responseEl.classList.add("loading");
+      input.value = "";
+      input.disabled = true;
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question,
+            articleTitle: article.title,
+            articleContent: article.content || article.description
+          })
+        });
+        const data = await res.json();
+        responseEl.textContent = data.answer || "Sorry, I couldn't find an answer.";
+        responseEl.classList.remove("loading");
+      } catch (err) {
+        console.error("[Busy Brief chat error]", err);
+        responseEl.textContent = "Error connecting to analysis engine.";
+        responseEl.classList.remove("loading");
+      } finally {
+        input.disabled = false;
+        input.focus();
+      }
+    }
+  });
   elements.calendarBrief?.addEventListener("click", setupReminder);
 }

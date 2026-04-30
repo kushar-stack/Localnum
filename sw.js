@@ -1,4 +1,4 @@
-const CACHE_NAME = "busy-brief-v5";
+const CACHE_NAME = "busy-brief-v6";
 const ASSETS = [
   "/",
   "/index.html",

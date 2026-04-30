@@ -1596,3 +1596,84 @@ button:disabled, input:disabled, select:disabled {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* ── VIEW TRANSITIONS ────────────────────────────────────────── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 400ms;
+  animation-timing-function: var(--ease-out);
+}
+
+/* ── STORY CHAT ─────────────────────────────────────────────── */
+.story-chat {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--line);
+}
+.chat-input {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: 0.85rem;
+  color: var(--ink);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.chat-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  background: var(--surface-solid);
+  box-shadow: 0 0 0 3px var(--brand-glow);
+}
+.chat-response {
+  font-size: 0.85rem;
+  margin-bottom: 0.6rem;
+  padding: 0.75rem;
+  background: var(--brand-pale);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--r-xs) var(--r-md) var(--r-md) var(--r-xs);
+  color: var(--ink);
+  line-height: 1.5;
+}
+.chat-response.loading {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* ── TICKERS & SPARK LINES ──────────────────────────────────── */
+.ticker {
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--brand-pale);
+  padding: 0 6px;
+  margin: 0 2px;
+  border-radius: 4px;
+  cursor: help;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9em;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.ticker:hover {
+  background: var(--brand-glow);
+}
+.spark-popover {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+  animation: fadeIn var(--dur-mid) var(--ease-out);
+}
+.spark-meta {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: -0.01em;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -1,7 +1,7 @@
 import { hydrateStateFromUrl, state } from "./state.js";
 import { initEvents } from "./events.js";
 import { fetchNews } from "./app_logic.js";
-import { applyTheme, renderTopics, renderActiveFilters, renderAdvancedFilters, refreshScrollReveal } from "./render.js";
+import { applyTheme, renderTopics, renderActiveFilters, renderAdvancedFilters, refreshScrollReveal, syncFormToState } from "./render.js";
 
 // Header scroll shadow
 function initHeaderScroll() {
@@ -18,11 +18,30 @@ function initHeaderScroll() {
   io.observe(sentinel);
 }
 
+async function restoreProfile() {
+  try {
+    const res = await fetch(`/api/profile?userId=${state.userId}`);
+    if (!res.ok) return;
+    const profile = await res.json();
+    if (profile && (profile.topics || profile.language)) {
+      Object.assign(state, profile);
+      persistState();
+      syncFormToState();
+      applyTheme(state.theme);
+      renderTopics();
+      renderActiveFilters();
+    }
+  } catch (err) {
+    console.log("[Busy Brief] Cloud profile not available.");
+  }
+}
+
 function init() {
   hydrateStateFromUrl();
   renderTopics();
   renderActiveFilters();
   renderAdvancedFilters();
+  syncFormToState();
   applyTheme(state.theme);
   
   // Header behavior
@@ -30,6 +49,7 @@ function init() {
   
   // Connect events and load news
   initEvents();
+  restoreProfile();
   fetchNews({ reset: true });
   
   // Initial reveal check

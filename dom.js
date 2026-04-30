@@ -22,6 +22,7 @@ export const elements = {
   qualityFilter: document.getElementById("qualityFilter"),
   coverageFilter: document.getElementById("coverageFilter"),
   sortBy: document.getElementById("sortBy"),
+  language: document.getElementById("language"),
   downloadBrief: document.getElementById("downloadBrief"),
   calendarBrief: document.getElementById("calendarBrief"),
   storyCount: document.getElementById("storyCount"),

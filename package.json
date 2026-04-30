@@ -4,5 +4,9 @@
   "type": "module",
   "scripts": {
     "test": "node test_security.js"
+  },
+  "dependencies": {
+    "@vercel/kv": "^1.0.1",
+    "@vercel/og": "^0.6.2"
   }
 }

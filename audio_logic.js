@@ -1,19 +1,28 @@
 import { elements } from "./dom.js";
 import { appState, audioState } from "./state.js";
 
-let synthesis = window.speechSynthesis;
-let currentUtterance = null;
+import { setStatus } from "./render.js";
+
+let player = new Audio();
+let currentBlobUrl = null;
 
 export function initAudio() {
-  if (!synthesis) return;
-
-  // Synthesis voices are loaded asynchronously in many browsers
-  if (synthesis.onvoiceschanged !== undefined) {
-    synthesis.onvoiceschanged = () => {
-      // Warm up the voice cache
-      synthesis.getVoices();
-    };
-  }
+  player.onplay = () => {
+    audioState.playing = true;
+    updateAudioUi();
+  };
+  player.onpause = () => {
+    audioState.playing = false;
+    updateAudioUi();
+  };
+  player.onended = () => {
+    if (audioState.playing) nextAudio();
+  };
+  player.onerror = (e) => {
+    console.error("Audio player error:", e);
+    audioState.playing = false;
+    updateAudioUi();
+  };
 
   // Cleanup on page unload
   window.addEventListener("beforeunload", stopAudio);
@@ -36,63 +45,60 @@ export function playBrief() {
   speakCurrent();
 }
 
-function speakCurrent() {
-  if (currentUtterance) synthesis.cancel();
-  
+async function speakCurrent() {
   const item = audioState.queue[audioState.currentIndex];
   if (!item) {
     stopAudio();
     return;
   }
 
+  if (currentBlobUrl) {
+    URL.revokeObjectURL(currentBlobUrl);
+    currentBlobUrl = null;
+  }
+
   const text = `${item.title}. ${item.bullets.join(". ")}`;
-  currentUtterance = new SpeechSynthesisUtterance(text);
-  
-  // Premium voice selection if available
-  const voices = synthesis.getVoices();
-  const premiumVoice = voices.find(v => v.name.includes("Google") && v.lang.startsWith("en")) || voices[0];
-  if (premiumVoice) currentUtterance.voice = premiumVoice;
-  
-  currentUtterance.rate = 1.05; // Slightly faster for "Pulse" feel
-  currentUtterance.pitch = 1.0;
+  setStatus("Generating premium audio brief...", "neutral");
 
-  currentUtterance.onstart = () => {
-    audioState.playing = true;
-    updateAudioUi();
-  };
+  try {
+    const res = await fetch("/api/audio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
 
-  currentUtterance.onend = () => {
-    if (audioState.playing) {
-      nextAudio();
-    }
-  };
+    if (!res.ok) throw new Error("Audio generation failed");
 
-  currentUtterance.onerror = (e) => {
-    console.error("TTS Error:", e);
-    audioState.playing = false;
-    updateAudioUi();
-  };
-
-  synthesis.speak(currentUtterance);
+    const blob = await res.blob();
+    currentBlobUrl = URL.createObjectURL(blob);
+    player.src = currentBlobUrl;
+    player.play();
+  } catch (err) {
+    console.error("[Busy Brief TTS error]", err);
+    setStatus("Failed to load premium audio. Skipping story.", "error");
+    setTimeout(nextAudio, 1500);
+  }
 }
 
 export function toggleAudio() {
-  if (synthesis.speaking) {
-    if (synthesis.paused) {
-      synthesis.resume();
-      audioState.playing = true;
+  if (player.src) {
+    if (player.paused) {
+      player.play();
     } else {
-      synthesis.pause();
-      audioState.playing = false;
+      player.pause();
     }
   } else {
     playBrief();
   }
-  updateAudioUi();
 }
 
 export function stopAudio() {
-  synthesis.cancel();
+  player.pause();
+  player.src = "";
+  if (currentBlobUrl) {
+    URL.revokeObjectURL(currentBlobUrl);
+    currentBlobUrl = null;
+  }
   audioState.active = false;
   audioState.playing = false;
   audioState.currentIndex = 0;

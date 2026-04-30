@@ -8,6 +8,7 @@ import {
   renderNews,
   setStatus,
   refreshScrollReveal,
+  refreshTickers,
 } from "./render.js";
 import { buildRequestSequence, fetchNews as apiFetchNews, buildSearchQuery } from "./api.js";
 import { cleanText, getCredibilityBadge, escapeHtml } from "./utils.js";
@@ -64,6 +65,8 @@ export async function fetchNews({ reset = false, force = false } = {}) {
     appState.rawArticles = [];
     if (appState.currentController) appState.currentController.abort();
     stopAudio();
+  } else {
+    appState.page += 1;
   }
 
   state.query = cleanText(elements.query?.value || "");
@@ -120,11 +123,19 @@ export async function fetchNews({ reset = false, force = false } = {}) {
     if (!payload) throw lastError || new Error("No feed candidates returned data.");
 
     appState.lastFeedNote = chosen?.note || "Live headlines are shown.";
-    appState.rawArticles = reset ? payload.articles : [...appState.rawArticles, ...payload.articles];
+    const combined = reset ? payload.articles : [...appState.rawArticles, ...payload.articles];
+    
+    // Deduplicate by URL to prevent glitches during infinite scroll/re-renders
+    const seenUrls = new Set();
+    appState.rawArticles = combined.filter(a => {
+      if (!a.url || seenUrls.has(a.url)) return false;
+      seenUrls.add(a.url);
+      return true;
+    });
 
     const clustered = clusterArticles(appState.rawArticles);
     const filtered = applyFilters(clustered);
-    renderCollection(filtered);
+    renderCollection(filtered, { append: !reset });
     
     if (elements.loadMore) {
       elements.loadMore.style.display = payload.articles.length >= 20 ? "block" : "none";
@@ -172,14 +183,25 @@ function skeletonCard(index = 0) {
   return isBento ? `<div class="bento-slot bento-${index + 1}">${card}</div>` : card;
 }
 
-export function renderCollection(articles) {
-  appState.currentBrief = articles;
-  appState.articleMap = new Map(articles.map(a => [a.id, a]));
-  renderHero(articles);
-  renderActiveFilters();
-  renderMetrics(articles);
-  renderNews(articles);
-  refreshScrollReveal();
+export function renderCollection(articles, { append = false } = {}) {
+  const update = () => {
+    appState.currentBrief = articles;
+    appState.articleMap = new Map(articles.map(a => [a.id, a]));
+    
+    // Always render hero/metrics for accurate counts, even on append
+    renderHero(articles);
+    renderMetrics(articles);
+    renderActiveFilters();
+    renderNews(articles, { append });
+    refreshScrollReveal();
+    refreshTickers();
+  };
+
+  if (document.startViewTransition && !append) {
+    document.startViewTransition(update);
+  } else {
+    update();
+  }
 }
 
 export function downloadBrief() {
@@ -230,3 +252,32 @@ export function setupReminder() {
     }
   });
 }
+
+let syncTimeout = null;
+export function syncProfile() {
+  if (syncTimeout) clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(async () => {
+    const profile = {
+      topics: state.topics,
+      theme: state.theme,
+      briefing: state.briefing,
+      qualityFilter: state.qualityFilter,
+      coverageFilter: state.coverageFilter,
+      language: state.language
+    };
+    
+    try {
+      await fetch(`/api/profile?userId=${state.userId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile)
+      });
+    } catch (err) {
+      console.warn("[Busy Brief sync] Offline, will sync when back online.");
+    }
+  }, 3000);
+}
+
+// Global listeners
+window.addEventListener("statePersisted", syncProfile);
+

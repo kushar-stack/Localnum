@@ -261,9 +261,10 @@ export function clusterArticles(articles) {
 
     const existing = clusters.find((item) => isSameStory(item, article));
     if (!existing) {
+      const dateHash = article.publishedAt ? `-${new Date(article.publishedAt).getTime().toString(36).slice(-4)}` : "";
       clusters.push({
         ...article,
-        id: normalizeTitle(article.title || article.url || "") || article.url || String(Date.now()),
+        id: (normalizeTitle(article.title || article.url || "") || article.url || String(Date.now())) + dateHash,
         sources: new Set([article.source?.name].filter(Boolean)),
         sourceMeta: [toSourceMeta(article)],
         articleCount: 1,

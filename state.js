@@ -18,6 +18,8 @@ export const state = {
   sortBy: localStorage.getItem("sortBy") || "publishedAt",
   advancedFiltersOpen: localStorage.getItem("advancedFiltersOpen") === "true",
   theme: localStorage.getItem(THEME_KEY) || "light",
+  userId: localStorage.getItem("userId") || (window.crypto ? crypto.randomUUID() : Math.random().toString(36).substring(2)),
+  language: localStorage.getItem("language") || "English",
 };
 
 export const appState = {
@@ -54,6 +56,9 @@ export function persistState() {
   localStorage.setItem("sortBy", state.sortBy);
   localStorage.setItem("advancedFiltersOpen", state.advancedFiltersOpen ? "true" : "false");
   localStorage.setItem(THEME_KEY, state.theme);
+  localStorage.setItem("userId", state.userId);
+  localStorage.setItem("language", state.language);
+  window.dispatchEvent(new CustomEvent("statePersisted"));
 }
 
 export function hydrateStateFromUrl() {

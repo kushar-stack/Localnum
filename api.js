@@ -38,6 +38,7 @@ export function buildRequestSequence() {
     summaries: "1",
     summary_limit: String(Math.min(briefing.summaryLimit, 12)),
     sortBy: state.sortBy,
+    lang: state.language,
   };
   const candidates = [];
   const mode = state.myBrief ? "search" : state.mode;

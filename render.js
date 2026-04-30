@@ -15,6 +15,13 @@ import {
 } from "./utils.js";
 import { summarizeArticle } from "./logic.js";
 
+function injectTickers(text) {
+  if (!text) return "";
+  return text.replace(/\$([A-Z]{1,5})\b/g, (match, symbol) => {
+    return `<span class="ticker" data-symbol="${symbol}">${escapeHtml(match)}</span>`;
+  });
+}
+
 // Helper for rendering
 function getCountryLabel(code) {
   const map = {
@@ -115,6 +122,19 @@ export function renderAdvancedFilters() {
   elements.advancedFilters.classList.toggle("hidden", !open);
   elements.advancedFiltersToggle.setAttribute("aria-expanded", open ? "true" : "false");
   elements.advancedFiltersToggle.textContent = open ? "Hide advanced filters" : "Advanced filters";
+}
+
+export function syncFormToState() {
+  if (elements.country) elements.country.value = state.country || "us";
+  if (elements.briefing) elements.briefing.value = state.briefing || "standard";
+  if (elements.range) elements.range.value = state.range || "7d";
+  if (elements.sortBy) elements.sortBy.value = state.sortBy || "publishedAt";
+  if (elements.qualityFilter) elements.qualityFilter.value = state.qualityFilter || "all";
+  if (elements.coverageFilter) elements.coverageFilter.value = state.coverageFilter || "all";
+  if (elements.exact) elements.exact.checked = Boolean(state.exact);
+  if (elements.conciseHeadlines) elements.conciseHeadlines.checked = Boolean(state.conciseHeadlines);
+  if (elements.myBrief) elements.myBrief.checked = Boolean(state.myBrief);
+  if (elements.language) elements.language.value = state.language || "English";
 }
 
 export function applyTheme(theme) {
@@ -221,11 +241,11 @@ export function cardTemplate(article, index = 0) {
           <span class="story-meta">${meta}</span>
           <span class="story-pill">${escapeHtml(getCoveragePill(article))}</span>
         </div>
-        <h3>${title}</h3>
+        <h3>${injectTickers(title)}</h3>
         <ul class="story-bullets">
-          ${bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}
+          ${bullets.map((bullet) => `<li>${injectTickers(escapeHtml(bullet))}</li>`).join("")}
         </ul>
-        <p class="story-why"><strong>Why it matters:</strong> ${escapeHtml(why)}</p>
+        <p class="story-why"><strong>Why it matters:</strong> ${injectTickers(escapeHtml(why))}</p>
         <div class="story-footer">
           <div class="story-signals">
             <span class="signal-chip">${escapeHtml(getSummaryOrigin(article))}</span>
@@ -235,13 +255,16 @@ export function cardTemplate(article, index = 0) {
             <button class="ghost-btn" type="button" data-open-article="${escapeHtml(article.id || "")}">Open brief</button>
             ${buildSourceLink(article.url)}
           </div>
+        <div class="story-chat">
+          <div class="chat-response hidden"></div>
+          <input type="text" placeholder="Ask a question..." class="chat-input" data-chat-id="${escapeHtml(article.id || "")}" />
         </div>
       </div>
     </article>
   `;
 }
 
-export function renderNews(articles) {
+export function renderNews(articles, { append = false } = {}) {
   if (!articles.length) {
     if (elements.news) {
       elements.news.innerHTML = `
@@ -270,7 +293,16 @@ export function renderNews(articles) {
   }
 
   if (elements.news) {
-    elements.news.innerHTML = remainder.map((article, index) => cardTemplate(article, index + 3)).join("");
+    if (append) {
+      const existingIds = new Set(Array.from(elements.news.querySelectorAll('.story-card')).map(el => el.dataset.id));
+      const newArticles = remainder.filter(article => !existingIds.has(article.id));
+      if (newArticles.length) {
+        const html = newArticles.map((article, index) => cardTemplate(article, existingIds.size + index + 3)).join("");
+        elements.news.insertAdjacentHTML('beforeend', html);
+      }
+    } else {
+      elements.news.innerHTML = remainder.map((article, index) => cardTemplate(article, index + 3)).join("");
+    }
   }
 }
 
@@ -386,4 +418,51 @@ export function refreshScrollReveal() {
     );
   }
   document.querySelectorAll(".reveal:not(.visible)").forEach((el) => revealObserver.observe(el));
+}
+
+const tickerCache = new Map();
+
+export async function refreshTickers() {
+  const tickers = document.querySelectorAll(".ticker:not(.processed)");
+  for (const el of tickers) {
+    el.classList.add("processed");
+    const symbol = el.dataset.symbol;
+    if (!symbol) continue;
+    
+    try {
+      let data = tickerCache.get(symbol);
+      if (!data) {
+        const res = await fetch(`/api/market?symbol=${symbol}`);
+        if (!res.ok) continue;
+        data = await res.json();
+        tickerCache.set(symbol, data);
+      }
+      
+      const points = data.data;
+      const min = Math.min(...points);
+      const max = Math.max(...points);
+      const range = max - min || 1;
+      const width = 44;
+      const height = 14;
+      
+      const svgPoints = points.map((p, i) => {
+        const x = (i / (points.length - 1)) * width;
+        const y = height - ((p - min) / range) * height;
+        return `${x},${y}`;
+      }).join(" ");
+      
+      const color = data.isUp ? "var(--success)" : "var(--danger)";
+      
+      el.innerHTML += `
+        <span class="spark-popover">
+          <svg width="${width}" height="${height}" viewbox="0 0 ${width} ${height}">
+            <polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${svgPoints}" />
+          </svg>
+          <span class="spark-meta" style="color:${color}">${data.changePercent}%</span>
+        </span>
+      `;
+    } catch (err) {
+      console.error("[Busy Brief market error]", err);
+    }
+  }
 }
