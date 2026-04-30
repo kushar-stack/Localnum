@@ -5,10 +5,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { question, articleTitle, articleContent } = req.body;
+  let { question, articleTitle, articleContent } = req.body;
   if (!question || !articleTitle) {
     return res.status(400).json({ error: "Question and article context are required." });
   }
+
+  // Safety limits to prevent token overflow or abuse
+  question = String(question).slice(0, 500);
+  articleContent = String(articleContent || "").slice(0, 5000);
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {

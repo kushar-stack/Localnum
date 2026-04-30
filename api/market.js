@@ -5,8 +5,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "A valid ticker symbol is required." });
   }
 
-  // In a production environment, you would call Yahoo Finance, CoinGecko, or Alpha Vantage here.
-  // For this implementation, we generate a high-fidelity random-walk to simulate the 24h trend.
+  // PRODUCTION TIP: Replace this simulation with a real financial API.
+  // Recommended: 
+  // - Alpha Vantage (Stock/Crypto)
+  // - Yahoo Finance via 'yahoo-finance2' npm package
+  // - CoinGecko (Crypto)
+  // Example for Alpha Vantage:
+  // const res = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${symbol}&interval=60min&apikey=${process.env.ALPHAVANTAGE_KEY}`);
   
   const seed = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   let current = 100 + (seed % 50);

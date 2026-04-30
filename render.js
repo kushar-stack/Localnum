@@ -283,8 +283,11 @@ export function renderNews(articles, { append = false } = {}) {
     return;
   }
 
-  const featured = articles.slice(0, 3);
-  const remainder = articles.slice(3);
+  // Smart selection: prioritize articles with images for the bento grid
+  const withImages = articles.filter(a => a.urlToImage);
+  const withoutImages = articles.filter(a => !a.urlToImage);
+  const featured = [...withImages, ...withoutImages].slice(0, 3);
+  const remainder = articles.filter(a => !featured.find(f => f.id === a.id));
 
   if (elements.bentoGrid) {
     elements.bentoGrid.innerHTML = featured

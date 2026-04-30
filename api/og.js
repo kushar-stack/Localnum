@@ -100,7 +100,7 @@ export default function handler(req) {
                   color: "#7a6e61",
                   fontStyle: "italic"
                 },
-                children: "Read the full brief at busy-brief.vercel.app"
+                children: "Read the full brief at localnum.vercel.app"
               }
             }
           ],
