@@ -426,7 +426,7 @@ export function cardTemplate(article, index = 0) {
       new Date(article.lastPublishedAt).getTime() > new Date(seen.lastPublishedAt).getTime()
   );
   const imageHtml = article.urlToImage
-    ? `<img class="article-thumb" src="${escapeHtml(article.urlToImage)}" alt="" loading="${index < 2 ? "eager" : "lazy"}" onerror="this.style.display='none';this.parentElement.classList.add('fallback-only');" />`
+    ? `<img class="article-thumb" src="${escapeHtml(article.urlToImage)}" alt="" loading="${index < 2 ? "eager" : "lazy"}" data-img-fallback />`
     : "";
 
   return `
@@ -469,6 +469,15 @@ export function cardTemplate(article, index = 0) {
   `;
 }
 
+function wireImageFallbacks(container) {
+  container.querySelectorAll("img[data-img-fallback]").forEach((img) => {
+    img.addEventListener("error", () => {
+      img.style.display = "none";
+      img.parentElement?.classList.add("fallback-only");
+    }, { once: true });
+  });
+}
+
 export function renderNews(articles, { append = false } = {}) {
   if (!articles.length) {
     if (elements.bentoGrid) elements.bentoGrid.innerHTML = "";
@@ -500,6 +509,7 @@ export function renderNews(articles, { append = false } = {}) {
     elements.bentoGrid.innerHTML = featured
       .map((article, index) => `<div class="bento-slot reveal bento-${index + 1}">${cardTemplate(article, index)}</div>`)
       .join("");
+    wireImageFallbacks(elements.bentoGrid);
   }
 
   if (elements.news) {
@@ -513,10 +523,17 @@ export function renderNews(articles, { append = false } = {}) {
       if (newArticles.length) {
         const html = newArticles.map((article, index) => cardTemplate(article, existingIds.size + index + 3)).join("");
         elements.news.insertAdjacentHTML('beforeend', html);
+        wireImageFallbacks(elements.news);
       }
     } else {
       elements.news.innerHTML = remainder.map((article, index) => cardTemplate(article, index + 3)).join("");
+      wireImageFallbacks(elements.news);
     }
+  }
+
+  // Always show Load More when we have articles (infinite scroll handles hide/show via app_logic)
+  if (elements.loadMore && !append) {
+    elements.loadMore.style.display = "block";
   }
 }
 

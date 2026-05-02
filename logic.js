@@ -156,18 +156,19 @@ export function summarizeArticle(article) {
     });
   }
 
-  // 5. Smart fallback bullets (avoiding generic filler)
+  // 5. Smart fallback bullets (distinct per slot, not generic filler)
   const topic = extractTopic(article.title || "this topic");
   if (bullets.length < 3) {
+    const src = article.source?.name || "multiple outlets";
     if (bullets.length === 0) {
-      bullets.push(`New reports detail the current situation surrounding ${topic}.`);
-      bullets.push(`Stakeholders are assessing the immediate implications of this move.`);
-      bullets.push(`Additional context is being gathered as the story develops.`);
+      bullets.push(`Reports from ${src} are covering new developments surrounding ${topic}.`);
+      bullets.push(`Key stakeholders and affected parties are monitoring the situation closely.`);
+      bullets.push(`Further details are expected as more information becomes available.`);
     } else if (bullets.length === 1) {
-      bullets.push(`Initial findings suggest a significant impact on ${topic} dynamics.`);
-      bullets.push(`Observers are noting how this aligns with broader trends in the field.`);
+      bullets.push(`The story is gaining coverage across ${src} and related outlets.`);
+      bullets.push(`Analysts are assessing what this means for ${topic} going forward.`);
     } else {
-      bullets.push(`Current evidence point to a lasting shift for ${topic} and its counterparts.`);
+      bullets.push(`Current evidence points to a notable shift for ${topic} and related areas.`);
     }
   }
 

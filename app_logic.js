@@ -147,7 +147,8 @@ export async function fetchNews({ reset = false, force = false } = {}) {
     
     if (elements.loadMore) {
       const requestedPageSize = Number(chosen?.params?.pageSize || payload.articles.length || 0);
-      elements.loadMore.style.display = payload.articles.length >= requestedPageSize ? "block" : "none";
+      // Hide Load More only when we got fewer articles than requested (end of feed)
+      elements.loadMore.style.display = payload.articles.length < requestedPageSize ? "none" : "block";
     }
 
     await writeCache({ articles: appState.rawArticles, note: appState.lastFeedNote });

@@ -16,7 +16,8 @@ export function initAudio() {
     updateAudioUi();
   };
   player.onended = () => {
-    if (audioState.playing) nextAudio();
+    // Use audioState.active (not playing, which is already false when ended)
+    if (audioState.active) nextAudio();
   };
   player.onerror = (e) => {
     console.error("Audio player error:", e);
@@ -87,13 +88,15 @@ async function speakCurrent() {
 }
 
 export function toggleAudio() {
-  if (player.src) {
+  if (audioState.active) {
+    // Already playing a brief — toggle pause/resume
     if (player.paused) {
       player.play();
     } else {
       player.pause();
     }
   } else {
+    // Not active — start a fresh brief
     playBrief();
   }
 }
