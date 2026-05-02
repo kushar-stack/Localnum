@@ -36,6 +36,13 @@ export const appState = {
   modalFocusHandler: null,
 };
 
+export const audioState = {
+  active: false,
+  playing: false,
+  queue: [],
+  currentIndex: 0
+};
+
 const SEEN_KEY = "seenClustersV1";
 const SEEN_LIMIT = 250;
 
