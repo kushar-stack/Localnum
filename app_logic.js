@@ -75,6 +75,9 @@ export async function fetchNews({ reset = false, force = false } = {}) {
   }
 
   state.query = cleanText(elements.query?.value || "");
+  if (state.query && state.mode === "headlines") {
+    state.mode = "search";
+  }
   persistState();
   syncUrl();
 
