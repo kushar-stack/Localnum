@@ -81,6 +81,7 @@ export async function fetchNews({ reset = false, force = false } = {}) {
   const searchMode = state.myBrief ? "search" : state.mode;
   if (searchMode === "search" && !buildSearchQuery()) {
     setStatus("Type a topic or add one to My Brief to start searching.", "neutral");
+    if (reset) renderCollection([]);
     return;
   }
 

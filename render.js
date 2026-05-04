@@ -505,7 +505,7 @@ export function renderNews(articles, { append = false } = {}) {
   const featured = [...withImages, ...withoutImages].slice(0, 3);
   const remainder = articles.filter(a => !featured.find(f => f.id === a.id));
 
-  if (elements.bentoGrid) {
+  if (elements.bentoGrid && !append) {
     elements.bentoGrid.innerHTML = featured
       .map((article, index) => `<div class="bento-slot reveal bento-${index + 1}">${cardTemplate(article, index)}</div>`)
       .join("");

@@ -248,7 +248,6 @@ export default async function handler(request, response) {
   const params = new URLSearchParams({
     pageSize: String(safePageSize),
     page: String(safePage),
-    mode: String(mode),
   });
 
   let endpoint = `${NEWS_URL}/top-headlines`;

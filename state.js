@@ -104,13 +104,6 @@ export function markSeenCluster(article) {
   localStorage.setItem(SEEN_KEY, JSON.stringify(map));
 }
 
-export const audioState = {
-  active: false,
-  playing: false,
-  currentIndex: 0,
-  queue: [],
-};
-
 export function persistState() {
   localStorage.setItem("mode", state.mode);
   localStorage.setItem("query", state.query);
