@@ -8,6 +8,7 @@ import {
   closeArticle,
   renderAdvancedFilters,
   setStatus,
+  syncFormToState,
 } from "./render.js";
 import { cleanText } from "./utils.js";
 import { 
@@ -33,6 +34,7 @@ function setMode(mode) {
   }
   persistState();
   syncUrl();
+  syncFormToState();
 }
 
 function setCategory(category) {

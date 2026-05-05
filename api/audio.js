@@ -57,19 +57,30 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `OpenAI TTS failed with status ${response.status}`);
+      let errorMessage = `OpenAI TTS failed with status ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.error?.message) errorMessage = errorData.error.message;
+      } catch (e) {
+        // Fallback to generic status message
+      }
+      throw new Error(errorMessage);
     }
 
     const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
     
     res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Content-Length", buffer.length);
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     res.setHeader("X-Content-Type-Options", "nosniff");
     
-    return res.send(Buffer.from(arrayBuffer));
+    return res.end(buffer);
   } catch (err) {
     console.error("[Busy Brief TTS error]", err);
-    return res.status(500).json({ error: "Failed to generate audio briefing." });
+    return res.status(500).json({ 
+      error: "Failed to generate audio briefing.",
+      details: err.message
+    });
   }
 }

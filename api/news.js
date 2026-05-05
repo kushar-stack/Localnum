@@ -199,7 +199,11 @@ export default async function handler(request, response) {
   setCommonHeaders(response);
   const apiKey = process.env.NEWSAPI_KEY || process.env.NEWS_API_KEY;
   if (!apiKey) {
-    response.status(500).json({ error: "Missing NEWSAPI_KEY" });
+    console.error("[Busy Brief] NEWSAPI_KEY is missing in environment variables.");
+    response.status(503).json({ 
+      error: "News service is not configured.", 
+      details: "The server is missing the required API key to fetch news." 
+    });
     return;
   }
 
@@ -310,7 +314,11 @@ export default async function handler(request, response) {
       }
 
       console.error("[Busy Brief news upstream error]", apiResponse.status, errorMessage);
-      response.status(apiResponse.status).json({ error: "Upstream news provider error." });
+      response.status(apiResponse.status).json({ 
+        error: "Upstream news provider error.",
+        details: errorMessage,
+        status: apiResponse.status
+      });
       return;
     }
 

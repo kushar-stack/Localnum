@@ -15,6 +15,7 @@ import {
   toSafeExternalUrl,
 } from "./utils.js";
 import { summarizeArticle } from "./logic.js";
+import { toast } from "./components/Toast.js";
 
 let healthSnapshot = null;
 
@@ -165,8 +166,14 @@ export function setStatus(message = "", tone = "neutral") {
     elements.status.className = "status";
     return;
   }
+  
   elements.status.textContent = message;
   elements.status.className = `status show ${tone}`;
+
+  // If it's a significant status change, also show a toast
+  if (tone !== "neutral") {
+    toast.show(message, tone);
+  }
 }
 
 export function renderAdvancedFilters() {

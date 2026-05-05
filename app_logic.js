@@ -158,16 +158,25 @@ export async function fetchNews({ reset = false, force = false } = {}) {
     await writeCache({ articles: appState.rawArticles, note: appState.lastFeedNote });
     appState.lastUpdatedAt = Date.now();
     appState.lastUpdatedSource = "live";
+    
+    // Clear status after a short delay if it was a success
     setStatus("Live brief refreshed.", "success");
+    setTimeout(() => setStatus(""), 3000);
   } catch (error) {
     if (error.name === "AbortError") return;
+    
+    console.error("[Busy Brief] Fetch error:", error);
+    
+    let displayMessage = error.message || "Live feed failed to load.";
+    let tone = "error";
+    
     if (reset && (showedCached || hadBriefBefore)) {
       const stamp = appState.lastUpdatedAt ? new Date(appState.lastUpdatedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "recently";
       setStatus(`Live refresh failed — showing your last saved brief (updated ${stamp}).`, "warning");
       return;
     }
 
-    setStatus(error.message || "Live feed failed to load.", "error");
+    setStatus(displayMessage, tone);
     if (reset) {
       if (elements.bentoGrid) elements.bentoGrid.innerHTML = "";
       if (elements.spotlightGrid) elements.spotlightGrid.innerHTML = "";
