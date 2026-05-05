@@ -21,15 +21,24 @@ export class ToastSystem {
   }
 
   show(message, type = 'neutral', duration = 4000) {
+    // Prevent duplicate spam
+    const existing = Array.from(this.container.children).find(
+      el => el.dataset.message === message
+    );
+    if (existing) return;
+
+    const displayMessage = message.length > 150 ? message.substring(0, 147) + "..." : message;
+
     const toast = document.createElement('div');
     toast.className = `toast-item reveal ${type}`;
+    toast.dataset.message = message;
     
     const icon = this._getIcon(type);
     
     toast.innerHTML = `
       <div class="toast-content">
         <span class="toast-icon">${icon}</span>
-        <span class="toast-message">${message}</span>
+        <span class="toast-message">${displayMessage}</span>
       </div>
       <div class="toast-progress"></div>
     `;

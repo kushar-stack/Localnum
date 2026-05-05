@@ -1887,7 +1887,17 @@ button:disabled, input:disabled, select:disabled {
 .toast-item.warning .toast-icon { background: var(--warning); color: #fff; }
 .toast-item.neutral .toast-icon { background: var(--bg-deep); color: var(--ink); }
 
-.toast-message { font-size: 0.88rem; font-weight: 500; color: var(--ink); }
+.toast-message { 
+  font-size: 0.88rem; 
+  font-weight: 500; 
+  color: var(--ink); 
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
 
 .toast-progress {
   height: 2px; background: var(--brand);
