@@ -73,7 +73,8 @@ async function speakCurrent() {
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || "Audio generation failed");
+      const msg = errorData.details || errorData.error || "Audio generation failed";
+      throw new Error(msg);
     }
 
     const blob = await res.blob();
@@ -83,7 +84,7 @@ async function speakCurrent() {
   } catch (err) {
     console.error("[Busy Brief TTS error]", err);
     setStatus(err.message || "Failed to load premium audio. Skipping story.", "error");
-    setTimeout(nextAudio, 1500);
+    setTimeout(nextAudio, 3000); // Wait a bit longer to let user read error
   }
 }
 

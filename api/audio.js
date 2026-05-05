@@ -79,7 +79,7 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error("[Busy Brief TTS error]", err);
     return res.status(500).json({ 
-      error: "Failed to generate audio briefing.",
+      error: "Audio synthesis failed.",
       details: err.message
     });
   }

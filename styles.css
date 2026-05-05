@@ -1368,12 +1368,12 @@ button:disabled, input:disabled, select:disabled {
 
 .article-sheet {
   position: relative; z-index: 1;
-  width: 100%; max-width: 600px; /* Slimmer for side-drawer */
+  width: 100%; max-width: 850px; /* More room for desktop */
   height: 100%;
   background: var(--surface-solid);
   border-left: 1px solid var(--line-strong);
   overflow-y: auto;
-  padding: 2.5rem;
+  padding: 4rem 3rem 3rem; /* More top room */
   box-shadow: var(--shadow-lg);
   transform: translateX(100%);
   transition: transform var(--dur-mid) var(--ease-out);
@@ -1446,7 +1446,7 @@ button:disabled, input:disabled, select:disabled {
 .article-block {
   background: var(--bg-deep);
   border-radius: var(--r-md);
-  padding: 1.1rem;
+  padding: 1.25rem 1.4rem;
 }
 :root[data-theme="dark"] .article-block { background: rgba(255,255,255,0.04); }
 .article-block h3 {
