@@ -5,6 +5,8 @@ import { setStatus } from "./render.js";
 
 let player = new Audio();
 let currentBlobUrl = null;
+let useWebSpeech = false;
+let currentUtterance = null;
 
 export function initAudio() {
   player.onplay = () => {
@@ -61,7 +63,11 @@ async function speakCurrent() {
     currentBlobUrl = null;
   }
 
-  const text = `${item.title}. ${item.bullets.join(". ")}`;
+  if (useWebSpeech) {
+    speakWithWebSpeech(text);
+    return;
+  }
+
   setStatus("Generating premium audio brief...", "neutral");
 
   try {
@@ -82,19 +88,73 @@ async function speakCurrent() {
     player.src = currentBlobUrl;
     player.play();
   } catch (err) {
-    console.error("[Busy Brief TTS error]", err);
-    setStatus(err.message || "Failed to load premium audio. Skipping story.", "error");
-    setTimeout(nextAudio, 3000); // Wait a bit longer to let user read error
+    console.warn("[Busy Brief TTS error]", err.message, "Falling back to local speech...");
+    setStatus("Using local voice (API unavailable)", "warning");
+    useWebSpeech = true;
+    speakWithWebSpeech(text);
   }
+}
+
+function speakWithWebSpeech(text) {
+  if (!window.speechSynthesis) {
+    setStatus("Audio not supported on this device.", "error");
+    setTimeout(nextAudio, 2000);
+    return;
+  }
+  
+  window.speechSynthesis.cancel();
+  currentUtterance = new SpeechSynthesisUtterance(text);
+  
+  // Attempt to use a smoother English voice if available
+  const voices = window.speechSynthesis.getVoices();
+  const enVoice = voices.find(v => v.lang.startsWith('en-') && (v.name.includes('Premium') || v.name.includes('Google') || v.name.includes('Siri') || v.name.includes('Natural')));
+  if (enVoice) currentUtterance.voice = enVoice;
+
+  currentUtterance.onstart = () => {
+    audioState.playing = true;
+    updateAudioUi();
+  };
+  
+  currentUtterance.onend = () => {
+    if (audioState.active) nextAudio();
+  };
+  
+  currentUtterance.onerror = (e) => {
+    if (e.error !== 'interrupted') {
+      audioState.playing = false;
+      updateAudioUi();
+      setTimeout(nextAudio, 1000);
+    }
+  };
+
+  currentUtterance.onpause = () => {
+    audioState.playing = false;
+    updateAudioUi();
+  };
+  
+  currentUtterance.onresume = () => {
+    audioState.playing = true;
+    updateAudioUi();
+  };
+
+  window.speechSynthesis.speak(currentUtterance);
 }
 
 export function toggleAudio() {
   if (audioState.active) {
     // Already playing a brief — toggle pause/resume
-    if (player.paused) {
-      player.play();
+    if (useWebSpeech) {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      } else if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause();
+      }
     } else {
-      player.pause();
+      if (player.paused) {
+        player.play();
+      } else {
+        player.pause();
+      }
     }
   } else {
     // Not active — start a fresh brief
@@ -108,6 +168,9 @@ export function stopAudio() {
   if (currentBlobUrl) {
     URL.revokeObjectURL(currentBlobUrl);
     currentBlobUrl = null;
+  }
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
   }
   audioState.active = false;
   audioState.playing = false;
