@@ -1287,12 +1287,16 @@ button:disabled, input:disabled, select:disabled {
   to   { opacity: 1; transform: translateY(0); }
 }
 .reveal {
-  opacity: 0; transform: translateY(20px);
-  transition: opacity var(--dur-slow) var(--ease-out),
-    transform var(--dur-slow) var(--ease-out);
+  opacity: 0;
+  transform: translateY(24px) scale(0.98);
+  transition:
+    opacity 0.6s var(--ease-out),
+    transform 0.8s var(--ease-spring);
+  will-change: transform, opacity;
 }
 .reveal.visible {
-  opacity: 1; transform: translateY(0);
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 /* ── LOAD MORE ──────────────────────────────────────────────── */
@@ -1795,6 +1799,28 @@ button:disabled, input:disabled, select:disabled {
 .ticker:hover {
   background: var(--brand-glow);
 }
+
+.sparkline-container {
+  display: inline-flex;
+  align-items: center;
+  width: 0;
+  overflow: hidden;
+  transition: width var(--dur-mid) var(--ease-out);
+  vertical-align: middle;
+}
+.sparkline-container.loaded {
+  width: 60px;
+  margin-left: 4px;
+}
+.sparkline-svg {
+  display: block;
+  animation: spark-fade-in 0.6s var(--ease-out) both;
+}
+@keyframes spark-fade-in {
+  from { opacity: 0; transform: scaleX(0); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
 .spark-popover {
   display: inline-flex;
   align-items: center;

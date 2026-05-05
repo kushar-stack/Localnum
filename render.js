@@ -16,6 +16,7 @@ import {
 } from "./utils.js";
 import { summarizeArticle } from "./logic.js";
 import { toast } from "./components/Toast.js";
+import { renderSparkline } from "./components/Sparkline.js";
 
 let healthSnapshot = null;
 
@@ -33,8 +34,32 @@ function isServiceAvailable(id) {
 function injectTickers(text) {
   if (!text) return "";
   return text.replace(/\$([A-Z]{1,5})\b/g, (match, symbol) => {
-    return `<span class="ticker" data-symbol="${symbol}">${escapeHtml(match)}</span>`;
+    return `
+      <span class="ticker" data-symbol="${symbol}">
+        ${escapeHtml(match)}
+        <span class="sparkline-container" data-spark-symbol="${symbol}"></span>
+      </span>
+    `;
   });
+}
+
+export function wireTickers(container) {
+  if (!container) return;
+  const tickers = container.querySelectorAll(".sparkline-container:not(.loaded)");
+  if (!tickers.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const symbol = el.dataset.sparkSymbol;
+        renderSparkline(symbol, el);
+        observer.unobserve(el);
+      }
+    });
+  }, { rootMargin: "100px" });
+
+  tickers.forEach((t) => observer.observe(t));
 }
 
 // Helper for rendering
@@ -437,7 +462,7 @@ export function cardTemplate(article, index = 0) {
     : "";
 
   return `
-    <article class="story-card reveal" data-id="${escapeHtml(article.id || "")}" data-open-article="${escapeHtml(article.id || "")}" style="--card-accent:${escapeHtml(accent)};animation-delay:${(index % 9) * 0.05}s">
+    <article class="story-card reveal" data-id="${escapeHtml(article.id || "")}" data-open-article="${escapeHtml(article.id || "")}" style="--card-accent:${escapeHtml(accent)};animation-delay:${(index % 12) * 0.08}s">
       <div class="story-media ${article.urlToImage ? "" : "fallback-only"}">
         ${imageHtml}
         <div class="story-media-fallback">${escapeHtml(getCategoryLabel(article.category || state.category || ""))}</div>
@@ -514,9 +539,10 @@ export function renderNews(articles, { append = false } = {}) {
 
   if (elements.bentoGrid && !append) {
     elements.bentoGrid.innerHTML = featured
-      .map((article, index) => `<div class="bento-slot reveal bento-${index + 1}">${cardTemplate(article, index)}</div>`)
+      .map((article, index) => `<div class="bento-slot reveal bento-${index + 1}" style="animation-delay:${index * 0.12}s">${cardTemplate(article, index)}</div>`)
       .join("");
     wireImageFallbacks(elements.bentoGrid);
+    wireTickers(elements.bentoGrid);
   }
 
   if (elements.news) {
@@ -531,10 +557,12 @@ export function renderNews(articles, { append = false } = {}) {
         const html = newArticles.map((article, index) => cardTemplate(article, existingIds.size + index + 3)).join("");
         elements.news.insertAdjacentHTML('beforeend', html);
         wireImageFallbacks(elements.news);
+        wireTickers(elements.news);
       }
     } else {
       elements.news.innerHTML = remainder.map((article, index) => cardTemplate(article, index + 3)).join("");
       wireImageFallbacks(elements.news);
+      wireTickers(elements.news);
     }
   }
 
@@ -587,14 +615,16 @@ export function openArticle(articleId) {
   }
   if (elements.articleBullets) {
     const bullets = summary.bullets.filter(Boolean).slice(0, 3);
-    elements.articleBullets.innerHTML = bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("");
+    elements.articleBullets.innerHTML = bullets.map((bullet) => `<li>${injectTickers(escapeHtml(bullet))}</li>`).join("");
   }
   if (elements.articleWhy) {
-    elements.articleWhy.textContent = sanitizeSummaryText(summary.why, 200) || "The downstream impact is still being assessed.";
+    elements.articleWhy.innerHTML = injectTickers(escapeHtml(sanitizeSummaryText(summary.why, 200) || "The downstream impact is still being assessed."));
   }
   if (elements.articleWatch) {
-    elements.articleWatch.textContent = sanitizeSummaryText(summary.watch, 200) || "Watch for meaningful follow-on developments over the next few days.";
+    elements.articleWatch.innerHTML = injectTickers(escapeHtml(sanitizeSummaryText(summary.watch, 200) || "Watch for meaningful follow-on developments over the next few days."));
   }
+  
+  wireTickers(elements.articleModal);
   if (elements.articleSources) {
     const newSourcesCount =
       seenRecord?.sourcesCount && uniqueSources.length
